@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}R.N. Soluções Industriais · Sistema de Gestão Operacional{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="flex min-h-screen bg-[#F5F6F8] font-['Inter'] text-gray-800 antialiased">
+    <!-- Sidebar Esquerda Fixa -->
+    <aside class="w-64 bg-[#181B20] text-gray-400 flex flex-col justify-between shrink-0 select-none">
+        <div>
+            <!-- Topo (Logo) -->
+            <a href="{{ url_for('main.home') }}" class="p-6 flex items-center gap-3 hover:opacity-95 transition-opacity">
+                <div class="w-10 h-10 rounded-lg border-2 border-[#F97316] flex items-center justify-center text-[#F97316] font-bold text-sm tracking-tight shrink-0">
+                    RN
+                </div>
+                <div>
+                    <div class="text-white font-bold text-lg leading-none">R.N.</div>
+                    <div class="text-[10px] text-gray-400 tracking-[0.18em] uppercase mt-1">SOLUÇÕES INDUSTRIAIS</div>
+                </div>
+            </a>
+
+            <!-- Seção de Menu -->
+            <div class="px-6 text-[11px] font-semibold text-gray-500 uppercase tracking-wider mt-4 mb-2">
+                GESTÃO INDUSTRIAL
+            </div>
+
+            <!-- Links de Navegação -->
+            <nav class="px-3 space-y-1">
+                <a href="{{ url_for('clientes.listar_clientes') }}"
+                   class="flex items-center gap-3 px-3 py-2.5 text-sm transition-colors {% if active_page == 'clientes' %}bg-[#2C221E] text-white font-medium rounded-lg{% else %}text-gray-400 hover:bg-white/5 hover:text-gray-200 rounded-lg{% endif %}">
+                    <i data-lucide="users" class="w-4 h-4 {% if active_page == 'clientes' %}text-[#F97316]{% else %}text-gray-400{% endif %}"></i>
+                    <span>Clientes</span>
+                </a>
+
+                <a href="{{ url_for('estoque.listar_estoque') }}"
+                   class="flex items-center gap-3 px-3 py-2.5 text-sm transition-colors {% if active_page == 'estoque' %}bg-[#2C221E] text-white font-medium rounded-lg{% else %}text-gray-400 hover:bg-white/5 hover:text-gray-200 rounded-lg{% endif %}">
+                    <i data-lucide="package" class="w-4 h-4 {% if active_page == 'estoque' %}text-[#F97316]{% else %}text-gray-400{% endif %}"></i>
+                    <span>Estoque</span>
+                </a>
+
+                <a href="{{ url_for('os.listar_os') }}"
+                   class="flex items-center justify-between px-3 py-2.5 text-sm transition-colors {% if active_page == 'os' %}bg-[#2C221E] text-white font-medium rounded-lg{% else %}text-gray-400 hover:bg-white/5 hover:text-gray-200 rounded-lg{% endif %}">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="file-text" class="w-4 h-4 {% if active_page == 'os' %}text-[#F97316]{% else %}text-gray-400{% endif %}"></i>
+                        <span>Ordens de Serviço</span>
+                    </div>
+                    <span class="bg-[#F97316] text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                        {{ total_os_ativas if total_os_ativas is defined else 12 }}
+                    </span>
+                </a>
+
+                {% if enable_fiscal_module %}
+                <a href="{{ url_for('main.modulo_fiscal_preview') }}"
+                   class="flex items-center justify-between px-3 py-2.5 text-sm transition-colors {% if active_page == 'faturamento' %}bg-[#2C221E] text-white font-medium rounded-lg{% else %}text-gray-400 hover:bg-white/5 hover:text-gray-200 rounded-lg{% endif %}">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="receipt" class="w-4 h-4 {% if active_page == 'faturamento' %}text-[#F97316]{% else %}text-gray-400{% endif %}"></i>
+                        <span>Notas Fiscais</span>
+                    </div>
+                    <span class="bg-amber-500/20 text-amber-400 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase">
+                        Beta
+                    </span>
+                </a>
+                {% endif %}
+
+                <a href="{{ url_for('main.configuracoes') }}"
+                   class="flex items-center gap-3 px-3 py-2.5 text-sm transition-colors {% if active_page == 'configuracoes' %}bg-[#2C221E] text-white font-medium rounded-lg{% else %}text-gray-400 hover:bg-white/5 hover:text-gray-200 rounded-lg{% endif %}">
+                    <i data-lucide="settings" class="w-4 h-4 {% if active_page == 'configuracoes' %}text-[#F97316]{% else %}text-gray-400{% endif %}"></i>
+                    <span>Configurações</span>
+                </a>
+            </nav>
+        </div>
+
+        <!-- Rodapé da Sidebar -->
+        <div class="p-5 border-t border-gray-800/80 flex items-center gap-2.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+            <div>
+                <div class="text-[10px] text-gray-500 uppercase tracking-wider leading-none">UNIDADE ATIVA</div>
+                <div class="text-xs text-gray-300 font-medium mt-1">Matriz · Sorocaba</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Área Direita Principal -->
+    <div class="flex-1 flex flex-col min-w-0">
+        <!-- Topbar Branca -->
+        <header class="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between gap-4">
+            <div>
+                {% block page_header %}
+                <h1 class="text-xl font-bold text-gray-900">Painel Operacional</h1>
+                <p class="text-xs text-gray-500 mt-0.5">Visão integrada da operação industrial</p>
+                {% endblock %}
+            </div>
+
+            <div class="flex items-center gap-4">
+                <!-- Barra de Busca Global -->
+                <div class="w-72 bg-[#F8F9FA] border border-gray-200 rounded-lg px-3.5 py-2 text-sm flex items-center gap-2 text-gray-400 focus-within:border-[#F97316] focus-within:ring-1 focus-within:ring-[#F97316]/30 transition-all">
+                    <i data-lucide="search" class="w-4 h-4 shrink-0 text-gray-400"></i>
+                    <input type="text"
+                           placeholder="Buscar no sistema..."
+                           class="bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 w-full text-sm">
+                </div>
+
+                <!-- Botão de Notificações -->
+                <button type="button"
+                        title="Notificações"
+                        class="w-10 h-10 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 relative hover:bg-gray-50 transition-colors">
+                    <i data-lucide="bell" class="w-4 h-4"></i>
+                    <span class="w-2 h-2 rounded-full bg-[#F97316] absolute top-2.5 right-2.5"></span>
+                </button>
+
+                <!-- Perfil do Usuário -->
+                <div class="flex items-center gap-3 pl-2">
+                    <div class="w-9 h-9 rounded-full bg-[#181B20] text-white text-xs font-bold flex items-center justify-center shrink-0">
+                        RN
+                    </div>
+                    <div class="leading-tight">
+                        <div class="text-sm font-semibold text-gray-800">Rafael Nogueira</div>
+                        <div class="text-xs text-gray-400">Administrador</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Área de Flash Messages e Conteúdo -->
+        <main class="p-8 flex-1 overflow-y-auto">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="space-y-3 mb-6">
+                        {% for category, message in messages %}
+                            {% if category == 'error' %}
+                                <div class="flex items-center gap-3 px-4 py-3 rounded-lg border border-red-200 bg-red-50 text-red-800 text-sm font-medium">
+                                    <i data-lucide="alert-circle" class="w-4 h-4 text-red-600 shrink-0"></i>
+                                    <span>{{ message }}</span>
+                                </div>
+                            {% else %}
+                                <div class="flex items-center gap-3 px-4 py-3 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm font-medium">
+                                    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+                                    <span>{{ message }}</span>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
+
