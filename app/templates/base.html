@@ -55,6 +55,19 @@
                     </span>
                 </a>
 
+                {% if enable_fiscal_module %}
+                <a href="{{ url_for('main.modulo_fiscal_preview') }}"
+                   class="flex items-center justify-between px-3 py-2.5 text-sm transition-colors {% if active_page == 'faturamento' %}bg-[#2C221E] text-white font-medium rounded-lg{% else %}text-gray-400 hover:bg-white/5 hover:text-gray-200 rounded-lg{% endif %}">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="receipt" class="w-4 h-4 {% if active_page == 'faturamento' %}text-[#F97316]{% else %}text-gray-400{% endif %}"></i>
+                        <span>Notas Fiscais</span>
+                    </div>
+                    <span class="bg-amber-500/20 text-amber-400 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase">
+                        Beta
+                    </span>
+                </a>
+                {% endif %}
+
                 <a href="{{ url_for('main.configuracoes') }}"
                    class="flex items-center gap-3 px-3 py-2.5 text-sm transition-colors {% if active_page == 'configuracoes' %}bg-[#2C221E] text-white font-medium rounded-lg{% else %}text-gray-400 hover:bg-white/5 hover:text-gray-200 rounded-lg{% endif %}">
                     <i data-lucide="settings" class="w-4 h-4 {% if active_page == 'configuracoes' %}text-[#F97316]{% else %}text-gray-400{% endif %}"></i>

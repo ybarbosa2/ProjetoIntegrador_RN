@@ -245,3 +245,118 @@ def test_fluxo_cadastro_rapido_cliente_e_abertura_os(client):
     html = resp_os.get_data(as_text=True)
     assert "Metalúrgica Votorantim Express Ltda." in html
     assert "Ordem de Serviço #OS-1049" in html
+
+
+def test_validacoes_unitarias_os_service(app, os_service):
+    """Cobre regras de exceção, validações monetárias, vínculo de estoque e atualização completa em OsService."""
+    with app.app_context():
+        assert os_service.repository is os_service.os_repository
+
+        cliente_horizonte = Cliente.query.filter_by(codigo="CLI-0248").first()
+        cliente_nova_era = Cliente.query.filter_by(codigo="CLI-0247").first()
+        chapa = Material.query.filter_by(codigo="MAT-0092").first()  # Saldo inicial: 8
+        os_1048 = OrdemServico.query.filter_by(numero="OS-1048").first()
+
+        # Orçamento por ID inteiro e erro para O.S. inexistente
+        orc = os_service.gerar_orcamento(os_1048.id)
+        assert orc["codigo_orcamento"] == "ORC-1048"
+        with pytest.raises(ValueError, match="Ordem de Serviço não encontrada"):
+            os_service.gerar_orcamento(99999)
+
+        # Validações de cliente inválido ou inexistente (RN03)
+        with pytest.raises(ValueError, match="Cliente obrigatório não selecionado"):
+            os_service.criar_ordem_servico({"cliente_id": "invalido", "tipo_servico": "Solda"})
+        with pytest.raises(ValueError, match="Cliente obrigatório não selecionado"):
+            os_service.criar_ordem_servico({"cliente_id": 99999, "tipo_servico": "Solda"})
+
+        # O.S. sem descrição/tipo e número duplicado
+        with pytest.raises(ValueError, match="Informe o tipo ou a descrição"):
+            os_service.criar_ordem_servico(
+                {
+                    "cliente_id": cliente_horizonte.id,
+                    "tipo_servico": "",
+                    "descricao_detalhada": "",
+                    "titulo_resumo": "",
+                }
+            )
+        with pytest.raises(ValueError, match="já está em uso"):
+            os_service.criar_ordem_servico(
+                {
+                    "cliente_id": cliente_horizonte.id,
+                    "numero": "OS-1048",
+                    "tipo_servico": "Solda industrial",
+                }
+            )
+
+        # Validações de valor monetário inválido / negativo
+        with pytest.raises(ValueError, match="Valor inválido"):
+            os_service.criar_ordem_servico(
+                {
+                    "cliente_id": cliente_horizonte.id,
+                    "tipo_servico": "Solda",
+                    "valor_mao_de_obra": "abc",
+                }
+            )
+        with pytest.raises(ValueError, match="não pode ser negativo"):
+            os_service.criar_ordem_servico(
+                {
+                    "cliente_id": cliente_horizonte.id,
+                    "tipo_servico": "Solda",
+                    "valor_mao_de_obra": -100,
+                }
+            )
+
+        # Validações de materiais na criação da O.S. (inexistente e saldo insuficiente RN02)
+        with pytest.raises(ValueError, match="não encontrado no estoque"):
+            os_service.criar_ordem_servico(
+                {"cliente_id": cliente_horizonte.id, "tipo_servico": "Solda"},
+                lista_materiais=[{"material_id": 99999, "quantidade": 1}],
+            )
+        with pytest.raises(ValueError, match="Saldo insuficiente no estoque"):
+            os_service.criar_ordem_servico(
+                {"cliente_id": cliente_horizonte.id, "tipo_servico": "Solda"},
+                lista_materiais=[{"material_id": chapa.id, "quantidade": 50}],
+            )
+
+        # Criação com resumo automático, formato monetário R$ 1.250,50 e linhas vazias ignoradas
+        criada = os_service.criar_ordem_servico(
+            {
+                "cliente_id": cliente_horizonte.id,
+                "tipo_servico": "Caldeiraria pesada",
+                "descricao_detalhada": "Fabricação de tremonha industrial em aço carbono.",
+                "valor_mao_de_obra": "R$ 1.250,50",
+            },
+            lista_materiais=[
+                {"material_id": "", "quantidade": "2"},
+                {"material_id": chapa.id, "quantidade": "0"},
+                {"material_id": chapa.id, "quantidade": ""},
+            ],
+        )
+        assert criada.titulo_resumo == "Fabricação de tremonha industrial em aço carbono."
+        assert criada.valor_mao_de_obra == 1250.50
+
+        # Atualização completa de dados e validações de exceção
+        with pytest.raises(ValueError, match="Ordem de Serviço não encontrada"):
+            os_service.atualizar_status_ou_dados(99999, {"status": "Concluída"})
+        with pytest.raises(ValueError, match="Cliente obrigatório não selecionado"):
+            os_service.atualizar_status_ou_dados(criada.id, {"cliente_id": 99999})
+
+        atualizada = os_service.atualizar_status_ou_dados(
+            criada.id,
+            {
+                "cliente_id": cliente_nova_era.id,
+                "status": "Em andamento",
+                "data_abertura": "15/06/2025",
+                "prazo_entrega": "29/06/2025",
+                "titulo_resumo": "Tremonha industrial reforçada",
+                "tipo_servico": "Caldeiraria e solda",
+                "quantidade_servico": "2 conjuntos",
+                "responsavel": "André Souza",
+                "descricao_detalhada": "Tremonha com reforço estrutural lateral.",
+                "especificacoes_tecnicas": "Solda MIG contínua e primer anticorrosivo.",
+                "valor_mao_de_obra": "R$ 2.100,00",
+            },
+        )
+        assert atualizada.cliente_id == cliente_nova_era.id
+        assert atualizada.titulo_resumo == "Tremonha industrial reforçada"
+        assert atualizada.valor_mao_de_obra == 2100.00

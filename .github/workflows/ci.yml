@@ -1,0 +1,29 @@
+name: CI Pipeline - RN Solucoes
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Executar Testes Unitários e de Integração
+        run: pytest -v
+
+      - name: Verificar Cobertura de Testes (Quality Gate)
+        run: pytest --cov=app --cov-report=term-missing --cov-fail-under=80
