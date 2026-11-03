@@ -1,5 +1,26 @@
 from app.database import db
 
+UNIDADES_EXTENSO = {
+    "UN": "Unidade (UN)",
+    "M": "Metro (M)",
+    "BR": "Barra (BR)",
+    "KG": "Quilograma (KG)",
+}
+
+UNIDADES_ABREVIADAS = {
+    "UN": "un.",
+    "M": "m",
+    "BR": "br.",
+    "KG": "kg",
+}
+
+
+def formatar_quantidade(valor: float | int | None) -> str:
+    numero = float(valor or 0.0)
+    if numero.is_integer():
+        return str(int(numero))
+    return f"{numero:.2f}".rstrip("0").rstrip(".").replace(".", ",")
+
 
 class Material(db.Model):
     __tablename__ = "materiais"
@@ -27,6 +48,24 @@ class Material(db.Model):
         lazy=True,
     )
 
+    def registrar_entrada(self, quantidade: float) -> None:
+        """Soma quantidade positiva ao saldo disponível do material."""
+        qtd = float(quantidade or 0.0)
+        if qtd <= 0:
+            raise ValueError("A quantidade de entrada deve ser maior que zero.")
+        saldo_atual = float(self.disponivel if self.disponivel is not None else 0.0)
+        self.disponivel = saldo_atual + qtd
+
+    def registrar_saida(self, quantidade: float) -> None:
+        """Subtrai quantidade do saldo disponível, impedindo saldo negativo (RN02)."""
+        qtd = float(quantidade or 0.0)
+        if qtd <= 0:
+            raise ValueError("A quantidade de saída deve ser maior que zero.")
+        saldo_atual = float(self.disponivel if self.disponivel is not None else 0.0)
+        if qtd > saldo_atual:
+            raise ValueError("Saldo insuficiente no estoque")
+        self.disponivel = saldo_atual - qtd
+
     @property
     def status_estoque(self) -> str:
         disponivel = self.disponivel if self.disponivel is not None else 0.0
@@ -43,6 +82,24 @@ class Material(db.Model):
         minimo = self.minimo if self.minimo is not None else 0.0
         return max(0, int(minimo - disponivel))
 
+    @property
+    def disponivel_formatado(self) -> str:
+        return formatar_quantidade(self.disponivel)
+
+    @property
+    def minimo_formatado(self) -> str:
+        return formatar_quantidade(self.minimo)
+
+    @property
+    def unidade_extenso(self) -> str:
+        un = (self.unidade or "UN").upper()
+        return UNIDADES_EXTENSO.get(un, un)
+
+    @property
+    def unidade_abreviada(self) -> str:
+        un = (self.unidade or "UN").upper()
+        return UNIDADES_ABREVIADAS.get(un, un.lower())
+
     def __repr__(self) -> str:
         return f"<Material {self.codigo} - {self.descricao}>"
 
@@ -58,6 +115,9 @@ class MovimentacaoEstoque(db.Model):
     quantidade = db.Column(db.Float, nullable=False)
     responsavel = db.Column(db.String(100), default="Carlos Mendes")
 
+    @property
+    def quantidade_formatada(self) -> str:
+        return formatar_quantidade(self.quantidade)
+
     def __repr__(self) -> str:
         return f"<MovimentacaoEstoque {self.tipo} ({self.quantidade}) - Material ID {self.material_id}>"
-

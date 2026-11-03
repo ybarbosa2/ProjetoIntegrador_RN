@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block title %}{{ material.descricao }} · Estoque · R.N. Soluções Industriais{% endblock %}
+
+{% block page_header %}
+<h1 class="text-xl font-bold text-gray-900">Estoque</h1>
+<p class="text-xs text-gray-500 mt-0.5">Controle de materiais e insumos</p>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Cabeçalho da Página -->
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div class="flex items-center gap-3.5">
+            <a href="{{ url_for('estoque.listar_estoque') }}"
+               title="Voltar à listagem"
+               class="w-9 h-9 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors shrink-0">
+                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+            </a>
+            <div>
+                <div class="text-[11px] font-bold text-[#F97316] uppercase tracking-wider">
+                    ESTOQUE / DETALHES
+                </div>
+                <h2 class="text-xl font-bold text-gray-900 mt-0.5">{{ material.descricao }}</h2>
+                <p class="text-xs text-gray-500 mt-0.5">
+                    Material {{ material.codigo }} ·
+                    {% if movimentacoes %}
+                        Última movimentação {{ movimentacoes[0].data_hora }}
+                    {% else %}
+                        Última movimentação hoje às 09:42
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="{{ url_for('estoque.listar_estoque') }}"
+               class="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-medium px-4 py-2.5 rounded-lg text-xs shadow-sm transition-colors">
+                Voltar à listagem
+            </a>
+            <button type="button"
+                    onclick="alternarPainelMovimentacao()"
+                    class="bg-[#181B20] hover:bg-gray-800 text-white font-semibold px-4 py-2.5 rounded-lg text-xs inline-flex items-center gap-2 shadow-sm transition-colors">
+                <i data-lucide="arrow-left-right" class="w-3.5 h-3.5 text-[#F97316]"></i>
+                <span>+ Movimentar Estoque (Entrada/Saída)</span>
+            </button>
+            <a href="{{ url_for('estoque.editar_material', id=material.id) }}"
+               class="bg-[#F97316] hover:bg-orange-600 text-white font-semibold px-4 py-2.5 rounded-lg text-xs inline-flex items-center gap-2 shadow-sm transition-colors">
+                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                <span>Editar material</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Card Banner do Material -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-6 shadow-sm">
+        <div class="flex items-center gap-4">
+            <div class="w-14 h-14 rounded-xl bg-[#181B20] text-[#F97316] flex items-center justify-center shrink-0">
+                <i data-lucide="package" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <div class="text-[10px] font-bold text-[#F97316] uppercase tracking-wider">
+                    MATERIAL · {{ material.categoria | upper }}
+                </div>
+                <div class="text-lg font-bold text-gray-900 mt-0.5">{{ material.descricao }}</div>
+                <div class="text-xs text-gray-500 mt-0.5">{{ material.subtitulo or material.tipo_material }}</div>
+            </div>
+        </div>
+
+        <div class="sm:text-right">
+            <div class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                QUANTIDADE DISPONÍVEL
+            </div>
+            <div class="mt-0.5 flex sm:justify-end items-baseline gap-1.5">
+                <span class="text-2xl font-bold text-gray-900">{{ material.disponivel_formatado }}</span>
+                <span class="text-xs text-gray-400">unidades</span>
+            </div>
+            <div class="mt-1.5">
+                {% if material.status_estoque == 'Indisponível' %}
+                <span class="inline-flex items-center bg-red-100 text-red-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+                    Indisponível
+                </span>
+                {% elif material.status_estoque == 'Baixo' %}
+                <span class="inline-flex items-center bg-red-50 text-red-600 text-xs font-medium px-2.5 py-1 rounded-full">
+                    Estoque baixo
+                </span>
+                {% else %}
+                <span class="inline-flex items-center bg-emerald-50 text-emerald-700 text-xs font-medium px-2.5 py-1 rounded-full">
+                    Estoque normal
+                </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Card Rápido de Registro de Entrada / Saída (UC02 / RF02 / RN02) -->
+    <section id="painel_movimentacao"
+             class="bg-white rounded-xl border border-orange-200 p-6 mt-6 shadow-sm {% if not abrir_movimentacao %}hidden{% endif %}">
+        <div class="flex items-center justify-between pb-4 border-b border-gray-100">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-orange-50 text-[#F97316] flex items-center justify-center">
+                    <i data-lucide="arrow-left-right" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Registrar Movimentação de Estoque</h3>
+                    <p class="text-xs text-gray-500">Atualize o saldo disponível registrando uma entrada ou saída (RN02)</p>
+                </div>
+            </div>
+            <button type="button"
+                    onclick="alternarPainelMovimentacao()"
+                    class="text-gray-400 hover:text-gray-600">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <form method="POST"
+              action="{{ url_for('estoque.movimentar_material', id=material.id) }}"
+              class="grid grid-cols-1 md:grid-cols-12 gap-4 mt-4 items-end">
+            <div class="md:col-span-3">
+                <label for="tipo_mov"
+                       class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                    OPERAÇÃO
+                </label>
+                <select id="tipo_mov"
+                        name="tipo"
+                        class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none">
+                    <option value="Entrada">Registrar Entrada (+)</option>
+                    <option value="Saída">Registrar Saída (-)</option>
+                </select>
+            </div>
+
+            <div class="md:col-span-2">
+                <label for="quantidade_mov"
+                       class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                    QUANTIDADE ({{ material.unidade }})
+                </label>
+                <input type="text"
+                       id="quantidade_mov"
+                       name="quantidade"
+                       placeholder="Ex.: 5"
+                       required
+                       class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none">
+            </div>
+
+            <div class="md:col-span-3">
+                <label for="descricao_movimentacao"
+                       class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                    ORIGEM / OBSERVAÇÃO
+                </label>
+                <input type="text"
+                       id="descricao_movimentacao"
+                       name="descricao_movimentacao"
+                       placeholder="Ex.: Entrada de compra ou Saída OS"
+                       class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none">
+            </div>
+
+            <div class="md:col-span-2">
+                <label for="responsavel_mov"
+                       class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                    RESPONSÁVEL
+                </label>
+                <input type="text"
+                       id="responsavel_mov"
+                       name="responsavel"
+                       value="Carlos Mendes"
+                       class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none">
+            </div>
+
+            <div class="md:col-span-2">
+                <button type="submit"
+                        class="w-full bg-[#F97316] hover:bg-orange-600 text-white font-semibold px-4 py-2.5 rounded-lg text-sm shadow-sm transition-colors">
+                    Confirmar
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <!-- Grid Central (2/3 na esquerda + 1/3 na direita) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+        <!-- Coluna Esquerda: Informações do material -->
+        <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <h3 class="font-bold text-gray-900 text-sm pb-4 border-b border-gray-100">
+                Informações do material
+            </h3>
+
+            <div class="divide-y divide-gray-100 text-sm">
+                <!-- Linha 1 -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
+                    <div>
+                        <span class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider">CÓDIGO</span>
+                        <span class="block font-semibold text-gray-900 mt-1">{{ material.codigo }}</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider">CATEGORIA</span>
+                        <span class="block font-semibold text-gray-900 mt-1">{{ material.categoria }}</span>
+                    </div>
+                </div>
+
+                <!-- Linha 2 -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
+                    <div>
+                        <span class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider">TIPO</span>
+                        <span class="block font-semibold text-gray-900 mt-1">{{ material.tipo_material }}</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider">UNIDADE DE MEDIDA</span>
+                        <span class="block font-semibold text-gray-900 mt-1">{{ material.unidade_extenso }}</span>
+                    </div>
+                </div>
+
+                <!-- Linha 3 -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
+                    <div>
+                        <span class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider">ESTOQUE MÍNIMO</span>
+                        <span class="block font-semibold text-gray-900 mt-1">{{ material.minimo_formatado }} unidades</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider">CUSTO UNITÁRIO</span>
+                        <span class="block font-semibold text-gray-900 mt-1">{{ material.custo_unitario | moeda }}</span>
+                    </div>
+                </div>
+
+                <!-- Linha 4 -->
+                <div class="py-4">
+                    <span class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider">FORNECEDOR</span>
+                    <span class="block font-semibold text-gray-900 mt-1">{{ material.fornecedor or 'Não informado' }}</span>
+                </div>
+
+                <!-- Linha 5 -->
+                <div class="pt-4">
+                    <span class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider">LOCALIZAÇÃO</span>
+                    <span class="block font-semibold text-gray-900 mt-1">{{ material.localizacao or 'Não informada' }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna Direita: Observações e Alerta de Reposição -->
+        <div class="bg-white rounded-xl border border-gray-200 p-6 flex flex-col gap-4 shadow-sm">
+            <h3 class="font-bold text-gray-900 text-sm pb-4 border-b border-gray-100">
+                Observações
+            </h3>
+
+            <div class="border-l-4 border-[#F97316] bg-[#FAFAFB] rounded-r-lg p-4 text-xs text-gray-600 leading-relaxed">
+                {{ material.observacoes or 'Armazenar em local coberto e seco.' }}
+            </div>
+
+            {% if material.disponivel < material.minimo %}
+            <div class="bg-orange-50/70 border border-orange-200 rounded-xl p-4 flex items-start gap-3">
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-[#F97316] shrink-0 mt-0.5"></i>
+                <div>
+                    <div class="text-xs font-semibold text-orange-800">Reposição recomendada</div>
+                    <div class="text-xs font-bold text-red-600 mt-0.5">
+                        Comprar ao menos {{ material.quantidade_reposicao }} unidades
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Card Inferior: Histórico de movimentações -->
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden mt-6 shadow-sm">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+            <h3 class="font-bold text-gray-900 text-sm">Histórico de movimentações</h3>
+            <span class="text-xs text-gray-400">Últimos 30 dias</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-[#FAFAFB] border-b border-gray-100 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                        <th class="px-6 py-3.5">DATA E HORA</th>
+                        <th class="px-6 py-3.5">TIPO DE MOVIMENTAÇÃO</th>
+                        <th class="px-6 py-3.5">QUANTIDADE</th>
+                        <th class="px-6 py-3.5">RESPONSÁVEL</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-sm">
+                    {% for mov in movimentacoes %}
+                    <tr class="hover:bg-gray-50/70 transition">
+                        <td class="px-6 py-4 text-gray-500 whitespace-nowrap">{{ mov.data_hora }}</td>
+                        <td class="px-6 py-4 font-semibold text-gray-800">{{ mov.descricao_movimentacao }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if mov.tipo == 'Saída' %}
+                            <span class="text-red-600 font-bold">- {{ mov.quantidade_formatada }} {{ material.unidade_abreviada }}</span>
+                            {% else %}
+                            <span class="text-emerald-600 font-bold">+ {{ mov.quantidade_formatada }} {{ material.unidade_abreviada }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-gray-600 whitespace-nowrap">{{ mov.responsavel }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="px-6 py-8 text-center text-xs text-gray-400">
+                            Nenhuma movimentação registrada para este material.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function alternarPainelMovimentacao() {
+        const painel = document.getElementById('painel_movimentacao');
+        painel.classList.toggle('hidden');
+        if (!painel.classList.contains('hidden')) {
+            document.getElementById('quantidade_mov')?.focus();
+        }
+    }
+</script>
+{% endblock %}
