@@ -5,6 +5,7 @@ from app.database import db
 from app.models.cliente import Cliente
 from app.seed import seed_database
 from app.services.cliente_service import ClienteService
+from app.validators.cnpj_validator import CnpjValidator
 
 
 @pytest.fixture()
@@ -89,3 +90,19 @@ def test_deve_bloquear_cadastro_sem_campos_obrigatorios(app, cliente_service):
             cliente_service.cadastrar_cliente(
                 {"razao_social": "Empresa Sem Documento Ltda.", "cpf_cnpj": ""}
             )
+
+
+def test_cnpj_validator_normaliza_e_valida_dados_obrigatorios():
+    """Teste unitário direto da classe CnpjValidator extraída na etapa REFACTOR."""
+    assert CnpjValidator.normalizar_documento("18.420.331/0001-06") == "18420331000106"
+
+    razao, doc_formatado = CnpjValidator.validar_dados_obrigatorios(
+        {"razao_social": "  Metalúrgica Teste  ", "cpf_cnpj": "18420331000106"}
+    )
+    assert razao == "Metalúrgica Teste"
+    assert doc_formatado == "18.420.331/0001-06"
+
+    with pytest.raises(ValueError, match="Formato de CPF ou CNPJ inválido"):
+        CnpjValidator.validar_dados_obrigatorios(
+            {"razao_social": "Metalúrgica Teste", "cpf_cnpj": "12345"}
+        )

@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional
 
 from app.models.cliente import Cliente
 from app.repositories.cliente_repository import ClienteRepository
+from app.validators.cnpj_validator import CnpjValidator
 
 
 class ClienteService:
@@ -29,13 +30,7 @@ class ClienteService:
         }
 
     def cadastrar_cliente(self, dados: Dict[str, Any]) -> Cliente:
-        razao_social = (dados.get("razao_social") or "").strip()
-        cpf_cnpj = (dados.get("cpf_cnpj") or "").strip()
-
-        if not razao_social:
-            raise ValueError("O campo Razão Social / Nome é obrigatório.")
-        if not cpf_cnpj:
-            raise ValueError("O campo CPF / CNPJ é obrigatório.")
+        razao_social, cpf_cnpj = CnpjValidator.validar_dados_obrigatorios(dados)
 
         existente = self.repository.buscar_por_cpf_cnpj(cpf_cnpj)
         if existente is not None:
@@ -70,19 +65,15 @@ class ClienteService:
         if cliente is None:
             raise ValueError("Cliente não encontrado.")
 
-        razao_social = (dados.get("razao_social") or "").strip()
-        cpf_cnpj = (dados.get("cpf_cnpj") or "").strip()
-
-        if not razao_social:
-            raise ValueError("O campo Razão Social / Nome é obrigatório.")
-        if not cpf_cnpj:
-            raise ValueError("O campo CPF / CNPJ é obrigatório.")
+        razao_social, cpf_cnpj = CnpjValidator.validar_dados_obrigatorios(dados)
 
         existente = self.repository.buscar_por_cpf_cnpj(cpf_cnpj)
         if existente is not None and existente.id != cliente.id:
             raise ValueError("Este CNPJ já está cadastrado no sistema")
 
-        cliente.tipo_pessoa = (dados.get("tipo_pessoa") or cliente.tipo_pessoa or "Pessoa jurídica").strip()
+        cliente.tipo_pessoa = (
+            dados.get("tipo_pessoa") or cliente.tipo_pessoa or "Pessoa jurídica"
+        ).strip()
         cliente.razao_social = razao_social
         cliente.nome_fantasia = (dados.get("nome_fantasia") or "").strip() or None
         cliente.cpf_cnpj = cpf_cnpj
