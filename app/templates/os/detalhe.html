@@ -1,0 +1,433 @@
+{% extends "base.html" %}
+
+{% block title %}OS #{{ os.numero }} · Ordens de Serviço · R.N. Soluções Industriais{% endblock %}
+
+{% block page_header %}
+<h1 class="text-xl font-bold text-gray-900">Ordens de Serviço</h1>
+<p class="text-xs text-gray-500 mt-0.5">Planejamento e acompanhamento da produção</p>
+{% endblock %}
+
+{% block content %}
+<style>
+    @media print {
+        aside, header, .ocultar-impressao {
+            display: none !important;
+        }
+        body, main {
+            background: #ffffff !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        #modal_orcamento {
+            position: static !important;
+            display: block !important;
+            background: transparent !important;
+            padding: 0 !important;
+        }
+        #card_documento_orcamento {
+            box-shadow: none !important;
+            border: 1px solid #e5e7eb !important;
+            max-width: 100% !important;
+            max-height: none !important;
+        }
+    }
+</style>
+
+<div class="max-w-7xl mx-auto ocultar-impressao">
+    <!-- Cabeçalho da Página -->
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div class="flex items-center gap-3.5">
+            <a href="{{ url_for('os.listar_os') }}"
+               title="Voltar à listagem"
+               class="w-9 h-9 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors shrink-0">
+                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+            </a>
+            <div>
+                <div class="text-[11px] font-bold text-[#F97316] uppercase tracking-wider">
+                    ORDENS DE SERVIÇO / DETALHES
+                </div>
+                <h2 class="text-xl font-bold text-gray-900 mt-0.5">Ordem de Serviço #{{ os.numero }}</h2>
+                <p class="text-xs text-gray-500 mt-0.5">Aberta em {{ os.data_abertura }}</p>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2.5">
+            <button type="button"
+                    onclick="abrirModalOrcamento()"
+                    class="border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 px-3.5 py-2.5 rounded-lg text-xs font-semibold inline-flex items-center gap-2 shadow-sm transition-colors">
+                <i data-lucide="printer" class="w-3.5 h-3.5 text-gray-500"></i>
+                <span>Imprimir OS / Gerar Orçamento</span>
+            </button>
+
+            <a href="{{ url_for('os.listar_os') }}"
+               class="border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 px-3.5 py-2.5 rounded-lg text-xs font-medium shadow-sm transition-colors">
+                Voltar à listagem
+            </a>
+
+            <a href="{{ url_for('os.editar_os', id=os.id) }}"
+               class="bg-[#F97316] hover:bg-orange-600 text-white font-semibold px-4 py-2.5 rounded-lg text-xs inline-flex items-center gap-2 shadow-sm transition-colors">
+                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                <span>Editar OS</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Card Superior de Resumo (4 Colunas) -->
+    <div class="bg-white rounded-xl border border-gray-200 p-5 grid grid-cols-1 md:grid-cols-4 gap-6 md:divide-x md:divide-gray-100 mt-6 shadow-sm">
+        <div>
+            <span class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider">CLIENTE</span>
+            <a href="{{ url_for('clientes.detalhe_cliente', id=os.cliente.id) }}"
+               class="block font-bold text-gray-900 hover:text-[#F97316] text-sm mt-1 transition-colors">
+                {{ os.cliente.razao_social }}
+            </a>
+            <span class="block text-xs text-gray-400 mt-0.5">
+                {{ os.cliente.codigo }} · {{ os.cliente.telefone or 'Sem telefone' }}
+            </span>
+        </div>
+
+        <div class="md:pl-6">
+            <span class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider">DATA DE ABERTURA</span>
+            <span class="block font-bold text-gray-900 text-sm mt-1">{{ os.data_abertura }}</span>
+        </div>
+
+        <div class="md:pl-6">
+            <span class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider">PRAZO DE ENTREGA</span>
+            <span class="block font-bold text-gray-900 text-sm mt-1">{{ os.prazo_entrega }}</span>
+        </div>
+
+        <div class="md:pl-6">
+            <span class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider">STATUS ATUAL</span>
+            <div class="mt-1.5">
+                {% if os.status == 'Em andamento' %}
+                <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-xs font-medium px-2.5 py-1 rounded-full">
+                    • Em andamento
+                </span>
+                {% elif os.status == 'Aguardando material' %}
+                <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-xs font-medium px-2.5 py-1 rounded-full">
+                    • Aguardando material
+                </span>
+                {% elif os.status == 'Aberta' %}
+                <span class="inline-flex items-center gap-1 bg-orange-50 text-[#F97316] text-xs font-medium px-2.5 py-1 rounded-full">
+                    • Aberta
+                </span>
+                {% elif os.status == 'Concluída' %}
+                <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs font-medium px-2.5 py-1 rounded-full">
+                    • Concluída
+                </span>
+                {% else %}
+                <span class="inline-flex items-center gap-1 bg-gray-100 text-gray-700 text-xs font-medium px-2.5 py-1 rounded-full">
+                    • {{ os.status }}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Grid Central (2/3 na esquerda + 1/3 na direita) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+        <!-- Coluna Esquerda: Informações do serviço -->
+        <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <h3 class="font-bold text-gray-900 text-sm pb-4 border-b border-gray-100">
+                Informações do serviço
+            </h3>
+
+            <div class="divide-y divide-gray-100 text-sm">
+                <!-- Linha 1 -->
+                <div class="py-4">
+                    <span class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider">TIPO DE SERVIÇO</span>
+                    <span class="block font-semibold text-gray-900 mt-1">{{ os.tipo_servico or 'Não informado' }}</span>
+                </div>
+
+                <!-- Linha 2 -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
+                    <div>
+                        <span class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider">QUANTIDADE</span>
+                        <span class="block font-semibold text-gray-900 mt-1">{{ os.quantidade_servico or '1 conjunto' }}</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider">RESPONSÁVEL</span>
+                        <span class="block font-semibold text-gray-900 mt-1">{{ os.responsavel or 'Não definido' }}</span>
+                    </div>
+                </div>
+
+                <!-- Linha 3 -->
+                <div class="py-4">
+                    <span class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider">DESCRIÇÃO DETALHADA</span>
+                    <p class="text-gray-800 mt-1 leading-relaxed">
+                        {{ os.descricao_detalhada or os.titulo_resumo or 'Sem descrição detalhada registrada.' }}
+                    </p>
+                </div>
+
+                <!-- Linha 4 -->
+                <div class="pt-4">
+                    <span class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider">ESPECIFICAÇÕES TÉCNICAS</span>
+                    <p class="text-gray-800 mt-1 leading-relaxed">
+                        {{ os.especificacoes_tecnicas or 'Conforme padrões técnicos de fabricação R.N. Soluções Industriais.' }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna Direita: Resumo financeiro -->
+        <div class="bg-white rounded-xl border border-gray-200 p-6 flex flex-col justify-between shadow-sm">
+            <div>
+                <h3 class="font-bold text-gray-900 text-sm pb-4 border-b border-gray-100">
+                    Resumo financeiro
+                </h3>
+
+                <div class="divide-y divide-gray-100 text-sm mt-2">
+                    <div class="py-3.5 flex items-center justify-between">
+                        <span class="text-gray-500 text-xs">Mão de obra</span>
+                        <span class="font-bold text-gray-900">{{ os.valor_mao_de_obra | moeda }}</span>
+                    </div>
+                    <div class="py-3.5 flex items-center justify-between">
+                        <span class="text-gray-500 text-xs">Materiais</span>
+                        <span class="font-bold text-gray-900">{{ os.valor_materiais | moeda }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-[#181B20] rounded-xl p-4 flex items-center justify-between mt-6">
+                <span class="text-xs text-gray-300 font-medium">Valor total da OS</span>
+                <span class="text-lg font-bold text-[#F97316]">{{ os.valor_total | moeda }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card Inferior: Materiais utilizados -->
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden mt-6 shadow-sm">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+            <h3 class="font-bold text-gray-900 text-sm">Materiais utilizados</h3>
+            <span class="text-xs text-gray-400">{{ os.itens | length }} materiais</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-[#FAFAFB] border-b border-gray-100 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                        <th class="px-6 py-3.5">MATERIAL</th>
+                        <th class="px-6 py-3.5">QUANTIDADE</th>
+                        <th class="px-6 py-3.5">UNIDADE</th>
+                        <th class="px-6 py-3.5">VALOR UNITÁRIO</th>
+                        <th class="px-6 py-3.5">VALOR TOTAL</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-sm">
+                    {% for item in os.itens %}
+                    <tr class="hover:bg-gray-50/70 transition">
+                        <td class="px-6 py-4">
+                            <a href="{{ url_for('estoque.detalhe_material', id=item.material.id) }}"
+                               class="font-semibold text-gray-900 hover:text-[#F97316] block">
+                                {{ item.material.descricao }}
+                            </a>
+                            <span class="text-xs text-gray-400">{{ item.material.codigo }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-gray-700 font-medium">
+                            {{ item.quantidade | int if item.quantidade == (item.quantidade | int) else item.quantidade }}
+                        </td>
+                        <td class="px-6 py-4 text-gray-500">{{ item.material.unidade }}</td>
+                        <td class="px-6 py-4 text-gray-500">{{ item.valor_unitario | moeda }}</td>
+                        <td class="px-6 py-4 font-bold text-gray-900">{{ item.valor_total | moeda }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-xs text-gray-400">
+                            Nenhum material de estoque vinculado a esta Ordem de Serviço.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Card Acompanhamento da ordem -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6 mt-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-gray-100">
+            <div>
+                <h3 class="font-bold text-gray-900 text-sm">Acompanhamento da ordem</h3>
+                <p class="text-xs text-gray-500 mt-0.5">Progresso operacional e atualização rápida de status</p>
+            </div>
+
+            <form method="POST"
+                  action="{{ url_for('os.editar_os', id=os.id) }}"
+                  class="flex items-center gap-2">
+                <select name="status"
+                        class="bg-[#F8F9FA] border border-gray-200 rounded-lg px-3 py-2 text-xs font-medium text-gray-800 focus:border-[#F97316] focus:outline-none">
+                    {% for st in status_opcoes %}
+                    <option value="{{ st }}" {% if os.status == st %}selected{% endif %}>{{ st }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit"
+                        class="bg-[#181B20] hover:bg-[#F97316] text-white font-semibold px-3.5 py-2 rounded-lg text-xs transition-colors">
+                    Atualizar status
+                </button>
+            </form>
+        </div>
+
+        {% set nivel_etapa = 4 if os.status == 'Concluída' else (3 if os.status == 'Em andamento' else (2 if os.status == 'Aguardando material' else 1)) %}
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-5">
+            <div class="p-3.5 rounded-xl border {% if nivel_etapa >= 1 %}border-orange-200 bg-orange-50/40{% else %}border-gray-100 bg-gray-50{% endif %}">
+                <div class="text-[10px] font-bold uppercase tracking-wider {% if nivel_etapa >= 1 %}text-[#F97316]{% else %}text-gray-400{% endif %}">Etapa 01</div>
+                <div class="text-xs font-bold text-gray-900 mt-1">Abertura &amp; Escopo</div>
+                <div class="text-[11px] text-gray-500 mt-0.5">Registrada em {{ os.data_abertura }}</div>
+            </div>
+
+            <div class="p-3.5 rounded-xl border {% if nivel_etapa >= 2 %}border-orange-200 bg-orange-50/40{% else %}border-gray-100 bg-gray-50{% endif %}">
+                <div class="text-[10px] font-bold uppercase tracking-wider {% if nivel_etapa >= 2 %}text-[#F97316]{% else %}text-gray-400{% endif %}">Etapa 02</div>
+                <div class="text-xs font-bold text-gray-900 mt-1">Materiais &amp; Insumos</div>
+                <div class="text-[11px] text-gray-500 mt-0.5">{{ os.itens | length }} itens vinculados</div>
+            </div>
+
+            <div class="p-3.5 rounded-xl border {% if nivel_etapa >= 3 %}border-blue-200 bg-blue-50/40{% else %}border-gray-100 bg-gray-50{% endif %}">
+                <div class="text-[10px] font-bold uppercase tracking-wider {% if nivel_etapa >= 3 %}text-blue-600{% else %}text-gray-400{% endif %}">Etapa 03</div>
+                <div class="text-xs font-bold text-gray-900 mt-1">Execução na Oficina</div>
+                <div class="text-[11px] text-gray-500 mt-0.5">Resp.: {{ os.responsavel or 'Carlos Mendes' }}</div>
+            </div>
+
+            <div class="p-3.5 rounded-xl border {% if nivel_etapa == 4 %}border-emerald-200 bg-emerald-50/50{% else %}border-gray-100 bg-gray-50{% endif %}">
+                <div class="text-[10px] font-bold uppercase tracking-wider {% if nivel_etapa == 4 %}text-emerald-600{% else %}text-gray-400{% endif %}">Etapa 04</div>
+                <div class="text-xs font-bold text-gray-900 mt-1">Entrega &amp; Conclusão</div>
+                <div class="text-[11px] text-gray-500 mt-0.5">Prazo: {{ os.prazo_entrega }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Orçamento Comercial Padronizado (US04 / RF05 / UC04 / CT06) -->
+<div id="modal_orcamento"
+     class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs {% if abrir_orcamento %}flex{% else %}hidden{% endif %} items-center justify-center p-4 overflow-y-auto">
+    <div id="card_documento_orcamento"
+         class="bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-4xl max-h-[92vh] overflow-y-auto">
+        <!-- Barra de Ações do Modal (não sai na impressão) -->
+        <div class="px-6 py-3.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between ocultar-impressao">
+            <span class="text-xs font-semibold text-gray-600">
+                Orçamento Comercial Padronizado · {{ orcamento.codigo_orcamento }}
+            </span>
+            <div class="flex items-center gap-2">
+                <button type="button"
+                        onclick="window.print()"
+                        class="bg-[#F97316] hover:bg-orange-600 text-white font-semibold px-4 py-1.5 rounded-lg text-xs inline-flex items-center gap-1.5 shadow-sm">
+                    <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                    <span>Imprimir / Salvar PDF</span>
+                </button>
+                <button type="button"
+                        onclick="fecharModalOrcamento()"
+                        class="bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 font-medium px-3 py-1.5 rounded-lg text-xs">
+                    Fechar
+                </button>
+            </div>
+        </div>
+
+        <!-- Corpo do Documento Oficial -->
+        <div class="p-8 space-y-6 text-gray-800">
+            <!-- Cabeçalho Oficial R.N. Soluções Industriais -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b-2 border-[#181B20]">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-12 h-12 rounded-xl bg-[#181B20] border-2 border-[#F97316] text-[#F97316] font-bold text-base flex items-center justify-center">
+                        RN
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-900">R.N. SOLUÇÕES INDUSTRIAIS</h2>
+                        <p class="text-xs text-gray-500">Metalurgia, Caldeiraria &amp; Manutenção Industrial · Matriz Sorocaba/SP</p>
+                    </div>
+                </div>
+                <div class="sm:text-right">
+                    <div class="inline-block bg-orange-50 text-[#F97316] text-xs font-bold px-3 py-1 rounded-md">
+                        PROPOSTA {{ orcamento.codigo_orcamento }}
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Ref. Ordem #{{ orcamento.numero_os }} · Emissão: {{ orcamento.data_emissao }}</p>
+                </div>
+            </div>
+
+            <!-- Dados do Cliente -->
+            <div class="bg-[#FAFAFB] border border-gray-200 rounded-xl p-5 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div>
+                    <span class="text-[10px] font-bold text-gray-400 uppercase">CLIENTE</span>
+                    <p class="font-bold text-gray-900 text-sm mt-0.5">{{ orcamento.cliente.razao_social }}</p>
+                    <p class="text-gray-600 mt-0.5">CPF/CNPJ: {{ orcamento.cliente.cpf_cnpj }} · Cód.: {{ orcamento.cliente.codigo }}</p>
+                </div>
+                <div>
+                    <span class="text-[10px] font-bold text-gray-400 uppercase">CONTATO &amp; LOCALIZAÇÃO</span>
+                    <p class="text-gray-700 font-medium mt-0.5">{{ orcamento.cliente.telefone }} · {{ orcamento.cliente.email }}</p>
+                    <p class="text-gray-500 mt-0.5">{{ orcamento.cliente.endereco_completo }}</p>
+                </div>
+            </div>
+
+            <!-- Escopo Técnico -->
+            <div>
+                <h4 class="text-xs font-bold text-gray-900 uppercase tracking-wider mb-2">1. Escopo Técnico do Serviço</h4>
+                <div class="border border-gray-200 rounded-xl p-4 text-xs space-y-2">
+                    <p><strong class="text-gray-700">Serviço:</strong> {{ orcamento.servico.tipo_servico }} ({{ orcamento.servico.quantidade_servico }})</p>
+                    <p><strong class="text-gray-700">Descrição:</strong> {{ orcamento.servico.descricao_detalhada }}</p>
+                    {% if orcamento.servico.especificacoes_tecnicas %}
+                    <p><strong class="text-gray-700">Especificações:</strong> {{ orcamento.servico.especificacoes_tecnicas }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Composição de Materiais e Mão de Obra -->
+            <div>
+                <h4 class="text-xs font-bold text-gray-900 uppercase tracking-wider mb-2">2. Composição de Custos</h4>
+                <div class="border border-gray-200 rounded-xl overflow-hidden">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead class="bg-gray-50 border-b border-gray-200 text-[10px] font-bold text-gray-500 uppercase">
+                            <tr>
+                                <th class="px-4 py-2.5">ITEM / DESCRIÇÃO</th>
+                                <th class="px-4 py-2.5">QTD.</th>
+                                <th class="px-4 py-2.5">VL. UNITÁRIO</th>
+                                <th class="px-4 py-2.5 text-right">SUBTOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% for it in orcamento.itens %}
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-gray-800">{{ it.codigo }} · {{ it.descricao }}</td>
+                                <td class="px-4 py-3 text-gray-600">{{ it.quantidade | int if it.quantidade == (it.quantidade | int) else it.quantidade }} {{ it.unidade }}</td>
+                                <td class="px-4 py-3 text-gray-600">{{ it.valor_unitario | moeda }}</td>
+                                <td class="px-4 py-3 text-right font-semibold text-gray-800">{{ it.subtotal | moeda }}</td>
+                            </tr>
+                            {% endfor %}
+                            <tr class="bg-gray-50/60">
+                                <td class="px-4 py-3 font-medium text-gray-800" colspan="3">Mão de Obra Especializada e Execução Técnica</td>
+                                <td class="px-4 py-3 text-right font-semibold text-gray-800">{{ orcamento.valor_mao_de_obra | moeda }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Totais e Condições Comerciais -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 items-end pt-2">
+                <div class="text-xs text-gray-500 space-y-1">
+                    <p><strong class="text-gray-700">Prazo estimado de entrega:</strong> {{ orcamento.prazo_entrega }}</p>
+                    <p><strong class="text-gray-700">Condições de pagamento:</strong> {{ orcamento.condicoes_pagamento }}</p>
+                    <p><strong class="text-gray-700">Validade da proposta:</strong> {{ orcamento.validade }}</p>
+                </div>
+
+                <div class="bg-[#181B20] text-white rounded-xl p-5 flex items-center justify-between">
+                    <div>
+                        <span class="block text-[10px] text-gray-400 uppercase tracking-wider">VALOR TOTAL DO ORÇAMENTO</span>
+                        <span class="text-xs text-gray-300">Materiais + Mão de obra</span>
+                    </div>
+                    <span class="text-xl font-bold text-[#F97316]">{{ orcamento.valor_total | moeda }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function abrirModalOrcamento() {
+        const modal = document.getElementById('modal_orcamento');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function fecharModalOrcamento() {
+        const modal = document.getElementById('modal_orcamento');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+</script>
+{% endblock %}

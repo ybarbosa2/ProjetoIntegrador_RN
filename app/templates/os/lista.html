@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Ordens de Serviço · R.N. Soluções Industriais{% endblock %}
+
+{% block page_header %}
+<h1 class="text-xl font-bold text-gray-900">Ordens de Serviço</h1>
+<p class="text-xs text-gray-500 mt-0.5">Planejamento e acompanhamento da produção</p>
+{% endblock %}
+
+{% block content %}
+<div>
+    <!-- Formulário Unificado de Busca e Filtros -->
+    <form method="GET" action="{{ url_for('os.listar_os') }}" id="form_filtros_os">
+        <!-- Linha Superior de Busca e Ação -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="w-96 max-w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm flex items-center gap-2.5 shadow-sm focus-within:border-[#F97316] focus-within:ring-1 focus-within:ring-[#F97316]/30 transition-all">
+                <i data-lucide="search" class="w-4 h-4 text-gray-400 shrink-0"></i>
+                <input type="text"
+                       name="q"
+                       value="{{ busca or '' }}"
+                       placeholder="Buscar por número, cliente ou descrição..."
+                       class="w-full bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 text-sm">
+                {% if busca %}
+                <a href="{{ url_for('os.listar_os', status=status_atual, cliente_id=cliente_id_atual) }}"
+                   title="Limpar busca"
+                   class="text-gray-400 hover:text-gray-600">
+                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </a>
+                {% endif %}
+            </div>
+
+            <a href="{{ url_for('os.nova_os') }}"
+               class="bg-[#F97316] hover:bg-orange-600 text-white font-medium px-4 py-2.5 rounded-lg inline-flex items-center gap-2 text-sm shadow-sm transition-colors self-start sm:self-auto">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Nova ordem de serviço</span>
+            </a>
+        </div>
+
+        <!-- Linha de Filtros Dropdown -->
+        <div class="flex flex-wrap items-center gap-2.5 mt-4">
+            <!-- 1. Select Status -->
+            <div class="bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-700 font-medium inline-flex items-center gap-1.5 shadow-sm">
+                <span class="text-gray-400">Status:</span>
+                <select name="status"
+                        onchange="document.getElementById('form_filtros_os').submit()"
+                        class="bg-transparent border-none outline-none font-semibold text-gray-800 cursor-pointer pr-1">
+                    <option value="Todos" {% if status_atual == 'Todos' %}selected{% endif %}>Todos</option>
+                    {% for st in status_opcoes %}
+                    <option value="{{ st }}" {% if status_atual == st %}selected{% endif %}>{{ st }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- 2. Select Cliente -->
+            <div class="bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-700 font-medium inline-flex items-center gap-1.5 shadow-sm">
+                <span class="text-gray-400">Cliente:</span>
+                <select name="cliente_id"
+                        onchange="document.getElementById('form_filtros_os').submit()"
+                        class="bg-transparent border-none outline-none font-semibold text-gray-800 cursor-pointer max-w-[180px] truncate pr-1">
+                    <option value="Todos" {% if cliente_id_atual == 'Todos' %}selected{% endif %}>Todos</option>
+                    {% for cli in clientes %}
+                    <option value="{{ cli.id }}" {% if cliente_id_atual == (cli.id | string) %}selected{% endif %}>
+                        {{ cli.razao_social }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- 3. Badge Período -->
+            <button type="button"
+                    class="bg-white border border-gray-200 hover:bg-gray-50 rounded-lg px-3.5 py-2 text-xs text-gray-700 font-medium inline-flex items-center gap-2 shadow-sm transition-colors">
+                <i data-lucide="calendar" class="w-3.5 h-3.5 text-gray-400"></i>
+                <span>Período: Últimos 30 dias</span>
+            </button>
+
+            <!-- 4. Botão Mais filtros -->
+            <button type="submit"
+                    class="bg-white border border-gray-200 hover:bg-gray-50 rounded-lg px-3.5 py-2 text-xs text-gray-700 font-medium inline-flex items-center gap-2 shadow-sm transition-colors">
+                <i data-lucide="filter" class="w-3.5 h-3.5 text-gray-400"></i>
+                <span>Mais filtros</span>
+            </button>
+        </div>
+    </form>
+
+    <!-- Card Principal da Tabela -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mt-5">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+            <h2 class="font-bold text-gray-900 text-sm">Todas as ordens</h2>
+            <span class="text-xs text-gray-400">{{ resumo.ativas }} ordens ativas</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-[#FAFAFB] border-b border-gray-100 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                        <th class="px-6 py-3.5">NÚMERO</th>
+                        <th class="px-6 py-3.5">CLIENTE / DESCRIÇÃO</th>
+                        <th class="px-6 py-3.5">ABERTURA</th>
+                        <th class="px-6 py-3.5">PRAZO</th>
+                        <th class="px-6 py-3.5">RESPONSÁVEL</th>
+                        <th class="px-6 py-3.5">STATUS</th>
+                        <th class="px-6 py-3.5 text-right"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-sm">
+                    {% for os_item in ordens %}
+                    <tr class="hover:bg-gray-50/70 transition">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <a href="{{ url_for('os.detalhe_os', id=os_item.id) }}"
+                               class="text-[#F97316] font-bold hover:underline">
+                                #{{ os_item.numero }}
+                            </a>
+                        </td>
+                        <td class="px-6 py-4">
+                            <a href="{{ url_for('os.detalhe_os', id=os_item.id) }}" class="block group">
+                                <div class="font-semibold text-gray-900 group-hover:text-[#F97316] transition-colors">
+                                    {{ os_item.cliente.razao_social }}
+                                </div>
+                                <div class="text-xs text-gray-400 mt-0.5">
+                                    {{ os_item.titulo_resumo or os_item.tipo_servico }}
+                                </div>
+                            </a>
+                        </td>
+                        <td class="px-6 py-4 text-gray-600 text-xs whitespace-nowrap">{{ os_item.data_abertura }}</td>
+                        <td class="px-6 py-4 text-gray-600 text-xs whitespace-nowrap">{{ os_item.prazo_entrega }}</td>
+                        <td class="px-6 py-4 text-gray-600 text-xs whitespace-nowrap">{{ os_item.responsavel or '—' }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if os_item.status == 'Em andamento' %}
+                            <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-xs font-medium px-2.5 py-1 rounded-full">
+                                • Em andamento
+                            </span>
+                            {% elif os_item.status == 'Aguardando material' %}
+                            <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-xs font-medium px-2.5 py-1 rounded-full">
+                                • Aguardando material
+                            </span>
+                            {% elif os_item.status == 'Aberta' %}
+                            <span class="inline-flex items-center gap-1 bg-orange-50 text-[#F97316] text-xs font-medium px-2.5 py-1 rounded-full">
+                                • Aberta
+                            </span>
+                            {% elif os_item.status == 'Concluída' %}
+                            <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs font-medium px-2.5 py-1 rounded-full">
+                                • Concluída
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 bg-gray-100 text-gray-700 text-xs font-medium px-2.5 py-1 rounded-full">
+                                • {{ os_item.status }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right whitespace-nowrap">
+                            <a href="{{ url_for('os.detalhe_os', id=os_item.id) }}"
+                               title="Ver detalhes da O.S."
+                               class="w-8 h-8 rounded-lg inline-flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors">
+                                <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-10 text-center text-sm text-gray-400">
+                            Nenhuma Ordem de Serviço encontrada para os filtros selecionados.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Rodapé com Paginação -->
+        <div class="px-6 py-4 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-gray-400">
+            <span>
+                Exibindo {% if ordens|length > 0 %}1–{{ ordens|length }}{% else %}0{% endif %} de {{ total_ordens }} registros
+            </span>
+
+            <div class="flex items-center gap-1.5">
+                <button type="button"
+                        class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50">
+                    &lt;
+                </button>
+                <button type="button"
+                        class="w-8 h-8 rounded-lg bg-[#181B20] text-white font-semibold flex items-center justify-center">
+                    1
+                </button>
+                <button type="button"
+                        class="w-8 h-8 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center">
+                    2
+                </button>
+                <button type="button"
+                        class="w-8 h-8 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center">
+                    3
+                </button>
+                <button type="button"
+                        class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50">
+                    &gt;
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
