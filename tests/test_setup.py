@@ -36,7 +36,7 @@ def test_app_initialization_and_seed(app):
         assert Cliente.query.count() == 6
         assert Material.query.count() == 5
         assert MovimentacaoEstoque.query.count() == 5
-        assert OrdemServico.query.count() == 5
+        assert OrdemServico.query.count() == 7
 
         # Idempotência do seed
         seed_database()

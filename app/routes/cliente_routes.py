@@ -1,61 +1,188 @@
-from flask import Blueprint, render_template_string
+from typing import Any, Dict
 
+from flask import (
+    Blueprint,
+    abort,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
+
+from app.models.cliente import Cliente
 from app.services.cliente_service import ClienteService
 
 clientes_bp = Blueprint("clientes", __name__)
 
-CLIENTES_PROVISORIO_HTML = """
-{% extends "base.html" %}
-{% block title %}Clientes · R.N. Soluções Industriais{% endblock %}
-{% block page_header %}
-<h1 class="text-xl font-bold text-gray-900">Clientes</h1>
-<p class="text-xs text-gray-500 mt-0.5">Base de clientes cadastrados · Visualização provisória (Etapa 1)</p>
-{% endblock %}
-{% block content %}
-<div class="space-y-4">
-    <div class="bg-orange-50 border border-orange-200 text-orange-800 rounded-lg px-4 py-3 text-sm">
-        Listagem rápida do seed carregado. A tela final do módulo de Clientes será implementada na próxima etapa.
-    </div>
-    <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        <table class="w-full text-sm text-left">
-            <thead class="bg-gray-50 text-xs text-gray-500 uppercase border-b border-gray-200">
-                <tr>
-                    <th class="px-5 py-3">Código</th>
-                    <th class="px-5 py-3">Cliente</th>
-                    <th class="px-5 py-3">CPF / CNPJ</th>
-                    <th class="px-5 py-3">Cidade/UF</th>
-                    <th class="px-5 py-3">Situação</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-                {% for cliente in clientes %}
-                <tr class="hover:bg-gray-50">
-                    <td class="px-5 py-3 font-mono text-xs text-gray-500">{{ cliente.codigo }}</td>
-                    <td class="px-5 py-3 font-medium text-gray-900">{{ cliente.razao_social }}</td>
-                    <td class="px-5 py-3 text-gray-600">{{ cliente.cpf_cnpj }}</td>
-                    <td class="px-5 py-3 text-gray-600">{{ cliente.cidade }}/{{ cliente.estado }}</td>
-                    <td class="px-5 py-3">
-                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium {% if cliente.situacao == 'Ativo' %}bg-emerald-50 text-emerald-700{% else %}bg-gray-100 text-gray-600{% endif %}">
-                            {{ cliente.situacao }}
-                        </span>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-{% endblock %}
-"""
+
+def _cliente_para_dict(cliente: Cliente) -> Dict[str, Any]:
+    return {
+        "tipo_pessoa": cliente.tipo_pessoa or "Pessoa jurídica",
+        "razao_social": cliente.razao_social or "",
+        "nome_fantasia": cliente.nome_fantasia or "",
+        "cpf_cnpj": cliente.cpf_cnpj or "",
+        "inscricao_estadual": cliente.inscricao_estadual or "",
+        "situacao": cliente.situacao or "Ativo",
+        "telefone": cliente.telefone or "",
+        "email": cliente.email or "",
+        "cep": cliente.cep or "",
+        "endereco": cliente.endereco or "",
+        "numero": cliente.numero or "",
+        "complemento": cliente.complemento or "",
+        "bairro": cliente.bairro or "",
+        "cidade": cliente.cidade or "",
+        "estado": cliente.estado or "",
+        "observacoes": cliente.observacoes or "",
+    }
 
 
-@clientes_bp.route("/clientes")
+@clientes_bp.route("/clientes", methods=["GET"])
 def listar_clientes():
+    busca = (request.args.get("q") or "").strip()
+    situacao = (request.args.get("situacao") or "Todos").strip()
+
+    if situacao not in ("Todos", "Ativo", "Inativo"):
+        situacao = "Todos"
+
     service = ClienteService()
-    clientes = service.listar_clientes()
-    return render_template_string(
-        CLIENTES_PROVISORIO_HTML,
+    clientes = service.listar_clientes(busca=busca, situacao=situacao)
+    resumo = service.obter_resumo()
+
+    return render_template(
+        "clientes/lista.html",
         active_page="clientes",
         clientes=clientes,
+        busca=busca,
+        situacao_atual=situacao,
+        resumo=resumo,
+        total_clientes=resumo["total"],
     )
 
+
+@clientes_bp.route("/clientes/novo", methods=["GET", "POST"])
+def novo_cliente():
+    service = ClienteService()
+
+    if request.method == "POST":
+        dados = request.form.to_dict()
+        try:
+            cliente = service.cadastrar_cliente(dados)
+            flash(f"Cliente {cliente.codigo} cadastrado com sucesso!", "success")
+            return redirect(url_for("clientes.listar_clientes"))
+        except ValueError as err:
+            flash(str(err), "error")
+            return render_template(
+                "clientes/novo.html",
+                active_page="clientes",
+                modo_edicao=False,
+                cliente=None,
+                dados=dados,
+            )
+
+    return render_template(
+        "clientes/novo.html",
+        active_page="clientes",
+        modo_edicao=False,
+        cliente=None,
+        dados={"tipo_pessoa": "Pessoa jurídica", "situacao": "Ativo"},
+    )
+
+
+@clientes_bp.route("/clientes/<int:id>", methods=["GET"])
+def detalhe_cliente(id: int):
+    service = ClienteService()
+    cliente = service.buscar_por_id(id)
+    if cliente is None:
+        abort(404)
+
+    ordens = sorted(
+        cliente.ordens_servico,
+        key=lambda os_item: os_item.numero or "",
+        reverse=True,
+    )
+
+    return render_template(
+        "clientes/detalhe.html",
+        active_page="clientes",
+        cliente=cliente,
+        ordens=ordens,
+    )
+
+
+@clientes_bp.route("/clientes/<int:id>/editar", methods=["GET", "POST"])
+def editar_cliente(id: int):
+    service = ClienteService()
+    cliente = service.buscar_por_id(id)
+    if cliente is None:
+        abort(404)
+
+    if request.method == "POST":
+        dados = request.form.to_dict()
+        try:
+            service.atualizar_cliente(id, dados)
+            flash("Dados do cliente atualizados com sucesso!", "success")
+            return redirect(url_for("clientes.detalhe_cliente", id=id))
+        except ValueError as err:
+            flash(str(err), "error")
+            return render_template(
+                "clientes/novo.html",
+                active_page="clientes",
+                modo_edicao=True,
+                cliente=cliente,
+                dados=dados,
+            )
+
+    return render_template(
+        "clientes/novo.html",
+        active_page="clientes",
+        modo_edicao=True,
+        cliente=cliente,
+        dados=_cliente_para_dict(cliente),
+    )
+
+
+@clientes_bp.route("/clientes/<int:id>/excluir", methods=["POST"])
+def excluir_cliente(id: int):
+    service = ClienteService()
+    try:
+        resultado = service.excluir_cliente(id)
+        if resultado == "inativado":
+            flash(
+                "Cliente possui Ordens de Serviço vinculadas e foi inativado para preservar o histórico.",
+                "success",
+            )
+        else:
+            flash("Cliente excluído com sucesso!", "success")
+    except ValueError as err:
+        flash(str(err), "error")
+
+    return redirect(url_for("clientes.listar_clientes"))
+
+
+@clientes_bp.route("/clientes/cadastro-rapido", methods=["POST"])
+def cadastro_rapido():
+    dados = request.get_json(silent=True) or request.form.to_dict()
+    service = ClienteService()
+
+    try:
+        cliente = service.cadastrar_cliente(dados)
+        return (
+            jsonify(
+                {
+                    "sucesso": True,
+                    "cliente": {
+                        "id": cliente.id,
+                        "codigo": cliente.codigo,
+                        "razao_social": cliente.razao_social,
+                        "cpf_cnpj": cliente.cpf_cnpj,
+                        "telefone": cliente.telefone,
+                        "email": cliente.email,
+                    },
+                }
+            ),
+            201,
+        )
+    except ValueError as err:
+        return jsonify({"sucesso": False, "erro": str(err)}), 400
