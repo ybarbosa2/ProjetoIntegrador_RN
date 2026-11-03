@@ -25,6 +25,9 @@ def create_app(test_config: Mapping[str, Any] | None = None) -> Flask:
         SECRET_KEY="rn-solucoes-industriais-secret-key",
         SQLALCHEMY_DATABASE_URI="sqlite:///rn_gestao.db",
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
+        ENABLE_FISCAL_MODULE=False,
+        ENABLE_WHATSAPP_NOTIFICATION=False,
+        ENABLE_REALTIME_STOCK_CHECK=True,
     )
 
     if test_config is not None:
@@ -35,7 +38,7 @@ def create_app(test_config: Mapping[str, Any] | None = None) -> Flask:
     # Registro de filtros Jinja2
     app.add_template_filter(formatar_moeda, name="moeda")
 
-    # Variáveis globais para os templates (ex: badge da sidebar)
+    # Variáveis globais para os templates (ex: badge da sidebar e feature flags)
     @app.context_processor
     def inject_global_context() -> dict[str, Any]:
         try:
@@ -44,7 +47,10 @@ def create_app(test_config: Mapping[str, Any] | None = None) -> Flask:
             ).count()
         except Exception:
             total_os_ativas = 12
-        return {"total_os_ativas": total_os_ativas}
+        return {
+            "total_os_ativas": total_os_ativas,
+            "enable_fiscal_module": bool(app.config.get("ENABLE_FISCAL_MODULE", False)),
+        }
 
     # Registro dos Blueprints
     app.register_blueprint(main_bp)

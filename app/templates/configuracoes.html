@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Configurações · R.N. Soluções Industriais{% endblock %}
+
+{% block page_header %}
+<h1 class="text-xl font-bold text-gray-900">Configurações</h1>
+<p class="text-xs text-gray-500 mt-0.5">Parâmetros operacionais da unidade, ambiente e controle de Feature Flags</p>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+    <!-- Card 01 - Dados da Unidade Ativa -->
+    <section class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div class="flex items-center justify-between pb-5 border-b border-gray-100">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-orange-50 text-[#F97316] font-bold text-xs flex items-center justify-center shrink-0">
+                    01
+                </div>
+                <div>
+                    <h2 class="text-sm font-bold text-gray-900">Dados da Unidade Ativa</h2>
+                    <p class="text-xs text-gray-500">Identificação institucional e ambiente operacional configurado</p>
+                </div>
+            </div>
+            <span class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-semibold px-3 py-1 rounded-full">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Ambiente Operacional Ativo
+            </span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-5 text-sm">
+            <div class="bg-[#FAFAFB] border border-gray-100 rounded-xl p-4">
+                <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">RAZÃO SOCIAL</span>
+                <span class="block font-bold text-gray-900 mt-1">R.N. Soluções Industriais</span>
+                <span class="block text-xs text-gray-400 mt-0.5">Metalurgia &amp; Manutenção Industrial</span>
+            </div>
+
+            <div class="bg-[#FAFAFB] border border-gray-100 rounded-xl p-4">
+                <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">UNIDADE</span>
+                <span class="block font-bold text-gray-900 mt-1">Matriz · Sorocaba / Ribeirão Preto</span>
+                <span class="block text-xs text-gray-400 mt-0.5">Operação integrada SP</span>
+            </div>
+
+            <div class="bg-[#FAFAFB] border border-gray-100 rounded-xl p-4">
+                <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">GESTOR RESPONSÁVEL</span>
+                <span class="block font-bold text-gray-900 mt-1">Rogério Barbosa / Rafael Nogueira</span>
+                <span class="block text-xs text-gray-400 mt-0.5">Diretoria &amp; Administração</span>
+            </div>
+
+            <div class="bg-[#FAFAFB] border border-gray-100 rounded-xl p-4">
+                <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">AMBIENTE</span>
+                <span class="block font-bold text-[#F97316] mt-1">Desenvolvimento / MVP</span>
+                <span class="block text-xs text-gray-400 mt-0.5">Flask + SQLAlchemy + SQLite</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Card 02 - Controle de Feature Flags e Módulos (Seção 6.6 DevOps) -->
+    <section class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-gray-100">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-orange-50 text-[#F97316] font-bold text-xs flex items-center justify-center shrink-0">
+                    02
+                </div>
+                <div>
+                    <h2 class="text-sm font-bold text-gray-900">Controle de Feature Flags e Módulos</h2>
+                    <p class="text-xs text-gray-500">
+                        Governança DevOps para integração contínua segura no repositório sem expor funcionalidades inacabadas em produção
+                    </p>
+                </div>
+            </div>
+            <span class="text-[11px] font-semibold text-gray-500 bg-gray-100 px-3 py-1 rounded-md self-start sm:self-auto">
+                DevOps · Feature Toggles
+            </span>
+        </div>
+
+        <div class="divide-y divide-gray-100 mt-2">
+            {% for flag in feature_flags %}
+            <div class="py-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div class="space-y-1.5 max-w-3xl">
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <code class="text-xs font-bold px-2.5 py-1 rounded-md bg-[#181B20] text-[#F97316]">
+                            {{ flag.chave }}
+                        </code>
+
+                        {% if flag.cor_badge == 'emerald' %}
+                        <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            {{ flag.categoria_badge }}
+                        </span>
+                        {% elif flag.cor_badge == 'orange' %}
+                        <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-orange-50 text-[#F97316] border border-orange-200">
+                            {{ flag.categoria_badge }}
+                        </span>
+                        {% else %}
+                        <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">
+                            {{ flag.categoria_badge }}
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <h3 class="text-sm font-bold text-gray-900">{{ flag.titulo }}</h3>
+                    <p class="text-xs text-gray-500 leading-relaxed">{{ flag.descricao }}</p>
+                </div>
+
+                <div class="flex items-center gap-3 shrink-0">
+                    {% if flag.ativo %}
+                    <span class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-full">
+                        • Ativo (True)
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-1.5 bg-gray-100 text-gray-600 text-xs font-semibold px-3 py-1.5 rounded-full">
+                        • Desativado (False)
+                    </span>
+                    {% endif %}
+
+                    {% if flag.editavel %}
+                    <form method="POST" action="{{ url_for('main.toggle_feature_flag') }}">
+                        <input type="hidden" name="flag" value="{{ flag.chave }}">
+                        <button type="submit"
+                                class="px-3.5 py-2 rounded-lg text-xs font-semibold border transition-colors {% if flag.ativo %}border-gray-300 bg-white hover:bg-gray-50 text-gray-700{% else %}border-[#F97316] bg-orange-50/60 hover:bg-[#F97316] text-[#F97316] hover:text-white{% endif %}">
+                            {{ 'Desativar Flag' if flag.ativo else 'Ativar Flag' }}
+                        </button>
+                    </form>
+                    {% else %}
+                    <span class="px-3.5 py-2 rounded-lg text-xs font-medium bg-gray-50 border border-gray-200 text-gray-400 cursor-not-allowed"
+                          title="Regra obrigatória do núcleo do MVP">
+                        Fixo (RN02)
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Card 03 - Resumo Técnico e Rastreabilidade do Sistema -->
+    <section class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-gray-100">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-orange-50 text-[#F97316] font-bold text-xs flex items-center justify-center shrink-0">
+                    03
+                </div>
+                <div>
+                    <h2 class="text-sm font-bold text-gray-900">Resumo Técnico e Rastreabilidade do Sistema</h2>
+                    <p class="text-xs text-gray-500">Volume atual de registros persistidos no banco SQLite e restauração de dados de homologação</p>
+                </div>
+            </div>
+
+            <form method="POST"
+                  action="{{ url_for('main.reset_seed_demonstracao') }}"
+                  onsubmit="return confirm('Deseja restaurar o banco de dados para o estado inicial do protótipo do Figma?');">
+                <button type="submit"
+                        class="bg-white border border-gray-200 hover:border-[#F97316] hover:text-[#F97316] text-gray-700 font-semibold px-4 py-2 rounded-lg text-xs inline-flex items-center gap-2 shadow-sm transition-colors">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                    <span>Restaurar Dados de Demonstração (Reset Seed)</span>
+                </button>
+            </form>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-5">
+            <div class="border border-gray-200 rounded-xl p-4 flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">TOTAL DE CLIENTES</span>
+                    <p class="text-2xl font-bold text-gray-900 mt-1">{{ metricas.total_clientes }}</p>
+                    <span class="text-xs text-gray-400">{{ metricas.clientes_ativos }} ativos</span>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-orange-50 text-[#F97316] flex items-center justify-center">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                </div>
+            </div>
+
+            <div class="border border-gray-200 rounded-xl p-4 flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">TOTAL DE MATERIAIS</span>
+                    <p class="text-2xl font-bold text-gray-900 mt-1">{{ metricas.total_materiais }}</p>
+                    <span class="text-xs text-amber-600">{{ metricas.materiais_baixo_estoque }} em alerta mínimo</span>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-orange-50 text-[#F97316] flex items-center justify-center">
+                    <i data-lucide="package" class="w-5 h-5"></i>
+                </div>
+            </div>
+
+            <div class="border border-gray-200 rounded-xl p-4 flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">MOVIMENTAÇÕES</span>
+                    <p class="text-2xl font-bold text-gray-900 mt-1">{{ metricas.total_movimentacoes }}</p>
+                    <span class="text-xs text-gray-400">Entradas e saídas auditadas</span>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-orange-50 text-[#F97316] flex items-center justify-center">
+                    <i data-lucide="arrow-left-right" class="w-5 h-5"></i>
+                </div>
+            </div>
+
+            <div class="border border-gray-200 rounded-xl p-4 flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">ORDENS DE SERVIÇO</span>
+                    <p class="text-2xl font-bold text-gray-900 mt-1">{{ metricas.total_os }}</p>
+                    <span class="text-xs text-gray-400">{{ metricas.os_ativas }} em aberto/produção</span>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-orange-50 text-[#F97316] flex items-center justify-center">
+                    <i data-lucide="file-text" class="w-5 h-5"></i>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

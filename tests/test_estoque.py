@@ -257,3 +257,54 @@ def test_rota_post_movimentar_entrada_e_bloqueio_saida_insuficiente(app, client)
 
     with app.app_context():
         assert db.session.get(Material, chapa_id).disponivel == 13.0
+
+
+def test_validacoes_unitarias_estoque_service(app):
+    """Cobre validações numéricas, resolução por ID e regras de unicidade/obrigatoriedade em EstoqueService."""
+    with app.app_context():
+        service = EstoqueService()
+        assert service.repository is service.repositorio
+
+        chapa = Material.query.filter_by(codigo="MAT-0092").first()
+        assert chapa is not None
+
+        # Resolução por ID inteiro e bloqueio para ID inexistente
+        atualizado = service.registrar_entrada(chapa.id, "R$ 1.002,50")
+        assert atualizado.disponivel == 1010.5
+        with pytest.raises(ValueError, match="Material não encontrado"):
+            service.registrar_entrada(99999, 5)
+
+        # Validações de conversão numérica (vazio obrigatório, texto inválido, zero e negativo)
+        with pytest.raises(ValueError, match="Informe um valor válido"):
+            service.registrar_entrada(chapa, "")
+        with pytest.raises(ValueError, match="Valor numérico inválido"):
+            service.registrar_entrada(chapa, "abc")
+        with pytest.raises(ValueError, match="deve ser maior que zero"):
+            service.registrar_entrada(chapa, 0)
+        with pytest.raises(ValueError, match="não pode ser negativo"):
+            service.cadastrar_material({"descricao": "Item Negativo", "minimo": -2})
+
+        # Validações de cadastro e atualização (descrição vazia, código duplicado e subtítulo)
+        with pytest.raises(ValueError, match="Nome ou Descrição do material é obrigatório"):
+            service.cadastrar_material({"descricao": "   "})
+        with pytest.raises(ValueError, match="já está cadastrado no estoque"):
+            service.cadastrar_material({"codigo": "MAT-0092", "descricao": "Duplicado"})
+        with pytest.raises(ValueError, match="Material não encontrado"):
+            service.atualizar_material(99999, {"descricao": "Inexistente"})
+        with pytest.raises(ValueError, match="Nome ou Descrição do material é obrigatório"):
+            service.atualizar_material(chapa.id, {"descricao": ""})
+        with pytest.raises(ValueError, match="já está cadastrado no estoque"):
+            service.atualizar_material(
+                chapa.id,
+                {"descricao": "Chapa aço carbono 3mm", "codigo": "MAT-0091"},
+            )
+
+        editado = service.atualizar_material(
+            chapa.id,
+            {
+                "descricao": "Chapa aço carbono 3mm",
+                "subtitulo": "Chapa laminada a quente certificada",
+                "minimo": "",
+            },
+        )
+        assert editado.subtitulo == "Chapa laminada a quente certificada"

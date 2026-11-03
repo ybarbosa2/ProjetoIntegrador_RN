@@ -5,7 +5,7 @@ from app.database import db
 from app.models.cliente import Cliente
 from app.seed import seed_database
 from app.services.cliente_service import ClienteService
-from app.validators.cnpj_validator import CnpjValidator
+from app.validators.cnpj_validator import CnpjValidator, limpar_documento, validar_cnpj
 
 
 @pytest.fixture()
@@ -100,12 +100,25 @@ def test_deve_bloquear_cadastro_sem_campos_obrigatorios(app, cliente_service):
 def test_cnpj_validator_normaliza_e_valida_dados_obrigatorios():
     """Teste unitário direto da classe CnpjValidator extraída na etapa REFACTOR."""
     assert CnpjValidator.normalizar_documento("18.420.331/0001-06") == "18420331000106"
+    assert limpar_documento("18.420.331/0001-06") == "18420331000106"
+    assert validar_cnpj("18.420.331/0001-06") is True
+    assert validar_cnpj("11.111.111/1111-11") is False
+
+    # Formatação de CPF (11 dígitos) e fallback para entrada fora do padrão
+    assert CnpjValidator.formatar_documento("21843092840") == "218.430.928-40"
+    assert CnpjValidator.formatar_documento("DOC-INVALIDO") == "DOC-INVALIDO"
 
     razao, doc_formatado = CnpjValidator.validar_dados_obrigatorios(
         {"razao_social": "  Metalúrgica Teste  ", "cpf_cnpj": "18420331000106"}
     )
     assert razao == "Metalúrgica Teste"
     assert doc_formatado == "18.420.331/0001-06"
+
+    razao_pf, cpf_formatado = CnpjValidator.validar_dados_obrigatorios(
+        {"razao_social": "Marcos Antônio Ribeiro", "cpf_cnpj": "21843092840"}
+    )
+    assert razao_pf == "Marcos Antônio Ribeiro"
+    assert cpf_formatado == "218.430.928-40"
 
     with pytest.raises(ValueError, match="Formato de CPF ou CNPJ inválido"):
         CnpjValidator.validar_dados_obrigatorios(

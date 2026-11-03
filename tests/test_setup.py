@@ -71,8 +71,8 @@ def test_app_initialization_and_seed(app):
         assert formatar_moeda(os_1048.valor_total) == "R$ 11.247,40"
 
 
-def test_home_and_provisional_routes_return_200(client):
-    """Verifica se a rota inicial e todas as rotas provisórias da barra lateral retornam HTTP 200."""
+def test_home_and_main_navigation_routes_return_200(client):
+    """Verifica se a rota inicial e as rotas principais dos módulos retornam HTTP 200."""
     response_home = client.get("/")
     assert response_home.status_code == 200
     html_home = response_home.get_data(as_text=True)
@@ -85,3 +85,51 @@ def test_home_and_provisional_routes_return_200(client):
         resp = client.get(rota)
         assert resp.status_code == 200, f"Falha na rota {rota}"
 
+
+def test_rota_configuracoes_e_feature_flags(client):
+    """Verifica a tela /configuracoes, exibição da flag ENABLE_FISCAL_MODULE e alternância de flags."""
+    resp = client.get("/configuracoes")
+    assert resp.status_code == 200
+    html = resp.get_data(as_text=True)
+    assert "ENABLE_FISCAL_MODULE" in html
+    assert "ENABLE_WHATSAPP_NOTIFICATION" in html
+    assert "ENABLE_REALTIME_STOCK_CHECK" in html
+    assert "Desativado (False)" in html
+    assert "R.N. Soluções Industriais" in html
+
+    # Módulo fiscal bloqueado quando ENABLE_FISCAL_MODULE = False
+    resp_fiscal_off = client.get("/faturamento", follow_redirects=True)
+    assert resp_fiscal_off.status_code == 200
+    assert "desativado pela Feature Flag ENABLE_FISCAL_MODULE" in resp_fiscal_off.get_data(
+        as_text=True
+    )
+
+    # Ativa ENABLE_FISCAL_MODULE via toggle
+    resp_toggle_on = client.post(
+        "/configuracoes/toggle-flag",
+        data={"flag": "ENABLE_FISCAL_MODULE"},
+        follow_redirects=True,
+    )
+    assert resp_toggle_on.status_code == 200
+    assert "ENABLE_FISCAL_MODULE alterada para Ativada (True)" in resp_toggle_on.get_data(
+        as_text=True
+    )
+
+    # Agora /faturamento fica acessível e item aparece na sidebar
+    resp_fiscal_on = client.get("/faturamento")
+    assert resp_fiscal_on.status_code == 200
+    assert "ENABLE_FISCAL_MODULE = True" in resp_fiscal_on.get_data(as_text=True)
+
+    # Tentativa de desativar flag obrigatória RN02 é protegida
+    resp_protegida = client.post(
+        "/configuracoes/toggle-flag",
+        data={"flag": "ENABLE_REALTIME_STOCK_CHECK"},
+        follow_redirects=True,
+    )
+    assert resp_protegida.status_code == 200
+    assert "permanece sempre ativa" in resp_protegida.get_data(as_text=True)
+
+    # Reset seed de demonstração
+    resp_reset = client.post("/configuracoes/reset-seed", follow_redirects=True)
+    assert resp_reset.status_code == 200
+    assert "restaurado com os dados oficiais" in resp_reset.get_data(as_text=True)
