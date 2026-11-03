@@ -1,5 +1,6 @@
-from flask import Blueprint, render_template_string
+from flask import Blueprint, abort, render_template_string
 
+from app.repositories.os_repository import OSRepository
 from app.services.os_service import OSService
 
 os_bp = Blueprint("os", __name__)
@@ -59,5 +60,17 @@ def listar_os():
         OS_PROVISORIO_HTML,
         active_page="os",
         ordens=ordens,
+    )
+
+
+@os_bp.route("/os/<int:os_id>")
+def detalhe_os_provisorio(os_id: int):
+    ordem = OSRepository.buscar_por_id(os_id)
+    if ordem is None:
+        abort(404)
+    return render_template_string(
+        OS_PROVISORIO_HTML,
+        active_page="os",
+        ordens=[ordem],
     )
 

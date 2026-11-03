@@ -299,6 +299,32 @@ def seed_database() -> None:
         valor_mao_de_obra=6100.00,
     )
 
-    db.session.add_all([os_1048, os_1047, os_1046, os_1045, os_1044])
+    os_0984 = OrdemServico(
+        numero="OS-0984",
+        cliente_id=cli_0248.id,
+        titulo_resumo="Reforço em plataforma industrial",
+        descricao_detalhada="Reforço em plataforma industrial",
+        tipo_servico="Manutenção industrial",
+        data_abertura="18/04/2025",
+        prazo_entrega="30/04/2025",
+        responsavel="Carlos Mendes",
+        status="Concluída",
+        valor_mao_de_obra=5400.00,
+    )
+
+    os_0912 = OrdemServico(
+        numero="OS-0912",
+        cliente_id=cli_0248.id,
+        titulo_resumo="Fabricação de guarda-corpo NR-12",
+        descricao_detalhada="Fabricação de guarda-corpo NR-12",
+        tipo_servico="Serralheria industrial",
+        data_abertura="02/02/2025",
+        prazo_entrega="15/02/2025",
+        responsavel="André Souza",
+        status="Concluída",
+        valor_mao_de_obra=3200.00,
+    )
+
+    db.session.add_all([os_1048, os_1047, os_1046, os_1045, os_1044, os_0984, os_0912])
     db.session.commit()
 

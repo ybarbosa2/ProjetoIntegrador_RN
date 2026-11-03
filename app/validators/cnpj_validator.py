@@ -1,26 +1,48 @@
 import re
+from typing import Any, Mapping, Tuple
+
+
+class CnpjValidator:
+    """Responsável pela normalização, validação estrutural e obrigatoriedade fiscal (CPF/CNPJ)."""
+
+    @staticmethod
+    def normalizar_documento(doc: str | None) -> str:
+        """Remove pontuações e espaços, mantendo apenas dígitos numéricos."""
+        return re.sub(r"\D", "", doc or "")
+
+    @classmethod
+    def formatar_documento(cls, doc: str | None) -> str:
+        """Formata 11 dígitos como CPF e 14 dígitos como CNPJ."""
+        digitos = cls.normalizar_documento(doc)
+        if len(digitos) == 14:
+            return f"{digitos[:2]}.{digitos[2:5]}.{digitos[5:8]}/{digitos[8:12]}-{digitos[12:]}"
+        if len(digitos) == 11:
+            return f"{digitos[:3]}.{digitos[3:6]}.{digitos[6:9]}-{digitos[9:]}"
+        return (doc or "").strip()
+
+    @classmethod
+    def validar_dados_obrigatorios(cls, dados: Mapping[str, Any]) -> Tuple[str, str]:
+        """Valida razão social/nome e formato de CPF/CNPJ, retornando (razao_social, documento_formatado)."""
+        razao_social = (dados.get("razao_social") or "").strip()
+        cpf_cnpj_bruto = (dados.get("cpf_cnpj") or "").strip()
+
+        if not razao_social:
+            raise ValueError("O campo Razão Social / Nome é obrigatório.")
+
+        if not cpf_cnpj_bruto:
+            raise ValueError("O campo CPF / CNPJ é obrigatório.")
+
+        digitos = cls.normalizar_documento(cpf_cnpj_bruto)
+        if len(digitos) not in (11, 14) or digitos == digitos[0] * len(digitos):
+            raise ValueError("Formato de CPF ou CNPJ inválido. Informe 11 ou 14 dígitos.")
+
+        return razao_social, cls.formatar_documento(digitos)
 
 
 def limpar_documento(documento: str) -> str:
-    """Remove caracteres não numéricos de CPF ou CNPJ."""
-    return re.sub(r"\D", "", documento or "")
+    return CnpjValidator.normalizar_documento(documento)
 
 
 def validar_cnpj(cnpj: str) -> bool:
-    """Valida os dígitos verificadores de um CNPJ brasileiro."""
-    numeros = limpar_documento(cnpj)
-    if len(numeros) != 14 or numeros == numeros[0] * 14:
-        return False
-
-    pesos_1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
-    soma_1 = sum(int(d) * p for d, p in zip(numeros[:12], pesos_1))
-    resto_1 = soma_1 % 11
-    digito_1 = 0 if resto_1 < 2 else 11 - resto_1
-
-    pesos_2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
-    soma_2 = sum(int(d) * p for d, p in zip(numeros[:13], pesos_2))
-    resto_2 = soma_2 % 11
-    digito_2 = 0 if resto_2 < 2 else 11 - resto_2
-
-    return numeros[-2:] == f"{digito_1}{digito_2}"
-
+    digitos = CnpjValidator.normalizar_documento(cnpj)
+    return len(digitos) == 14 and digitos != digitos[0] * 14

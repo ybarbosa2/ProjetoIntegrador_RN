@@ -1,0 +1,366 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Editar cliente' if modo_edicao else 'Novo cliente' }} · R.N. Soluções Industriais{% endblock %}
+
+{% block page_header %}
+<h1 class="text-xl font-bold text-gray-900">Clientes</h1>
+<p class="text-xs text-gray-500 mt-0.5">Gestão da base de clientes</p>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Topo da Área de Conteúdo -->
+    <div class="flex items-center gap-3.5">
+        <a href="{{ url_for('clientes.listar_clientes') }}"
+           title="Voltar para clientes"
+           class="w-9 h-9 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors shrink-0">
+            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+        </a>
+        <div>
+            <div class="text-[11px] font-bold text-[#F97316] uppercase tracking-wider">
+                CLIENTES / {{ 'EDITAR CADASTRO' if modo_edicao else 'NOVO CADASTRO' }}
+            </div>
+            <h2 class="text-xl font-bold text-gray-900 mt-0.5">
+                {{ 'Editar cliente' if modo_edicao else 'Novo cliente' }}
+            </h2>
+            <p class="text-xs text-gray-500 mt-0.5">
+                {{ 'Atualize as informações cadastrais do cliente.' if modo_edicao else 'Preencha as informações para adicionar um cliente.' }}
+            </p>
+        </div>
+    </div>
+
+    {% set tipo_atual = dados.get('tipo_pessoa', 'Pessoa jurídica') %}
+
+    <!-- Formulário POST dividido em 3 Cards Numerados -->
+    <form method="POST"
+          action="{{ url_for('clientes.editar_cliente', id=cliente.id) if modo_edicao and cliente else url_for('clientes.novo_cliente') }}"
+          class="space-y-6 mt-6">
+
+        <!-- Card 01 - Dados do cliente -->
+        <section class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div class="flex items-center gap-3 pb-5 border-b border-gray-100">
+                <div class="w-8 h-8 rounded-lg bg-orange-50 text-[#F97316] font-bold text-xs flex items-center justify-center shrink-0">
+                    01
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Dados do cliente</h3>
+                    <p class="text-xs text-gray-500">Identificação fiscal e informações principais</p>
+                </div>
+            </div>
+
+            <div class="mt-5 space-y-5">
+                <!-- Campo TIPO DE PESSOA -->
+                <div>
+                    <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                        TIPO DE PESSOA
+                    </label>
+                    <input type="hidden" name="tipo_pessoa" id="input_tipo_pessoa" value="{{ tipo_atual }}">
+                    <div class="inline-flex items-center gap-3">
+                        <button type="button"
+                                id="btn_pj"
+                                onclick="selecionarTipoPessoa('Pessoa jurídica')"
+                                class="px-5 py-2.5 rounded-lg text-xs transition-all {% if tipo_atual != 'Pessoa física' %}border-2 border-[#F97316] bg-orange-50/40 text-[#F97316] font-semibold{% else %}border border-gray-200 text-gray-600 hover:bg-gray-50{% endif %}">
+                            Pessoa jurídica
+                        </button>
+                        <button type="button"
+                                id="btn_pf"
+                                onclick="selecionarTipoPessoa('Pessoa física')"
+                                class="px-5 py-2.5 rounded-lg text-xs transition-all {% if tipo_atual == 'Pessoa física' %}border-2 border-[#F97316] bg-orange-50/40 text-[#F97316] font-semibold{% else %}border border-gray-200 text-gray-600 hover:bg-gray-50{% endif %}">
+                            Pessoa física
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Linha 1: RAZÃO SOCIAL e NOME FANTASIA -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-8">
+                        <label for="razao_social"
+                               id="label_razao_social"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            {{ 'NOME COMPLETO' if tipo_atual == 'Pessoa física' else 'RAZÃO SOCIAL' }}
+                        </label>
+                        <input type="text"
+                               id="razao_social"
+                               name="razao_social"
+                               value="{{ dados.get('razao_social', '') }}"
+                               placeholder="Digite a razão social"
+                               required
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                    </div>
+
+                    <div class="md:col-span-4">
+                        <label for="nome_fantasia"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            NOME FANTASIA
+                        </label>
+                        <input type="text"
+                               id="nome_fantasia"
+                               name="nome_fantasia"
+                               value="{{ dados.get('nome_fantasia', '') }}"
+                               placeholder="Nome comercial"
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                    </div>
+                </div>
+
+                <!-- Linha 2: CNPJ, INSCRIÇÃO ESTADUAL e SITUAÇÃO -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-4">
+                        <label for="cpf_cnpj"
+                               id="label_cpf_cnpj"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            {{ 'CPF' if tipo_atual == 'Pessoa física' else 'CNPJ' }}
+                        </label>
+                        <input type="text"
+                               id="cpf_cnpj"
+                               name="cpf_cnpj"
+                               value="{{ dados.get('cpf_cnpj', '') }}"
+                               placeholder="{{ '000.000.000-00' if tipo_atual == 'Pessoa física' else '00.000.000/0000-00' }}"
+                               required
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                    </div>
+
+                    <div class="md:col-span-4">
+                        <label for="inscricao_estadual"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            INSCRIÇÃO ESTADUAL
+                        </label>
+                        <input type="text"
+                               id="inscricao_estadual"
+                               name="inscricao_estadual"
+                               value="{{ dados.get('inscricao_estadual', '') }}"
+                               placeholder="000.000.000.000"
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                    </div>
+
+                    <div class="md:col-span-4">
+                        <label for="situacao"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            SITUAÇÃO
+                        </label>
+                        <select id="situacao"
+                                name="situacao"
+                                class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none transition-colors">
+                            <option value="Ativo" {% if dados.get('situacao', 'Ativo') == 'Ativo' %}selected{% endif %}>Ativo</option>
+                            <option value="Inativo" {% if dados.get('situacao') == 'Inativo' %}selected{% endif %}>Inativo</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Card 02 - Contato -->
+        <section class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div class="flex items-center gap-3 pb-5 border-b border-gray-100">
+                <div class="w-8 h-8 rounded-lg bg-orange-50 text-[#F97316] font-bold text-xs flex items-center justify-center shrink-0">
+                    02
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Contato</h3>
+                    <p class="text-xs text-gray-500">Canais principais de atendimento</p>
+                </div>
+            </div>
+
+            <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="telefone"
+                           class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                        TELEFONE
+                    </label>
+                    <input type="text"
+                           id="telefone"
+                           name="telefone"
+                           value="{{ dados.get('telefone', '') }}"
+                           placeholder="(00) 00000-0000"
+                           class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                </div>
+
+                <div>
+                    <label for="email"
+                           class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                        E-MAIL
+                    </label>
+                    <input type="email"
+                           id="email"
+                           name="email"
+                           value="{{ dados.get('email', '') }}"
+                           placeholder="contato@empresa.com.br"
+                           class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                </div>
+            </div>
+        </section>
+
+        <!-- Card 03 - Endereço -->
+        <section class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div class="flex items-center gap-3 pb-5 border-b border-gray-100">
+                <div class="w-8 h-8 rounded-lg bg-orange-50 text-[#F97316] font-bold text-xs flex items-center justify-center shrink-0">
+                    03
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Endereço</h3>
+                    <p class="text-xs text-gray-500">Localização para atendimento e entrega</p>
+                </div>
+            </div>
+
+            <div class="mt-5 space-y-4">
+                <!-- Linha 1: CEP e ENDEREÇO -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-4">
+                        <label for="cep"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            CEP
+                        </label>
+                        <input type="text"
+                               id="cep"
+                               name="cep"
+                               value="{{ dados.get('cep', '') }}"
+                               placeholder="00000-000"
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                    </div>
+
+                    <div class="md:col-span-8">
+                        <label for="endereco"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            ENDEREÇO
+                        </label>
+                        <input type="text"
+                               id="endereco"
+                               name="endereco"
+                               value="{{ dados.get('endereco', '') }}"
+                               placeholder="Rua, avenida ou rodovia"
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                    </div>
+                </div>
+
+                <!-- Linha 2: NÚMERO, COMPLEMENTO e BAIRRO -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-4">
+                        <label for="numero"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            NÚMERO
+                        </label>
+                        <input type="text"
+                               id="numero"
+                               name="numero"
+                               value="{{ dados.get('numero', '') }}"
+                               placeholder="Nº"
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                    </div>
+
+                    <div class="md:col-span-4">
+                        <label for="complemento"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            COMPLEMENTO
+                        </label>
+                        <input type="text"
+                               id="complemento"
+                               name="complemento"
+                               value="{{ dados.get('complemento', '') }}"
+                               placeholder="Galpão, bloco, sala"
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                    </div>
+
+                    <div class="md:col-span-4">
+                        <label for="bairro"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            BAIRRO
+                        </label>
+                        <input type="text"
+                               id="bairro"
+                               name="bairro"
+                               value="{{ dados.get('bairro', '') }}"
+                               placeholder="Bairro"
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                    </div>
+                </div>
+
+                <!-- Linha 3: CIDADE, ESTADO e OBSERVAÇÕES -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-6">
+                        <label for="cidade"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            CIDADE
+                        </label>
+                        <input type="text"
+                               id="cidade"
+                               name="cidade"
+                               value="{{ dados.get('cidade', '') }}"
+                               placeholder="Cidade"
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                    </div>
+
+                    <div class="md:col-span-6">
+                        <label for="estado"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            ESTADO
+                        </label>
+                        <input type="text"
+                               id="estado"
+                               name="estado"
+                               value="{{ dados.get('estado', '') }}"
+                               placeholder="SP"
+                               maxlength="10"
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                    </div>
+
+                    <div class="md:col-span-12">
+                        <label for="observacoes"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            OBSERVAÇÕES
+                        </label>
+                        <textarea id="observacoes"
+                                  name="observacoes"
+                                  rows="3"
+                                  placeholder="Condições comerciais, orientações de entrega ou contatos específicos..."
+                                  class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">{{ dados.get('observacoes', '') }}</textarea>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Barra Final de Ações -->
+        <div class="flex items-center justify-end gap-3 pt-2">
+            <a href="{{ url_for('clientes.detalhe_cliente', id=cliente.id) if modo_edicao and cliente else url_for('clientes.listar_clientes') }}"
+               class="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-medium px-5 py-2.5 rounded-lg text-sm transition-colors">
+                Cancelar
+            </a>
+            <button type="submit"
+                    class="bg-[#F97316] hover:bg-orange-600 text-white font-semibold px-6 py-2.5 rounded-lg text-sm shadow-sm transition-colors">
+                Salvar cliente
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    function selecionarTipoPessoa(tipo) {
+        const inputHidden = document.getElementById('input_tipo_pessoa');
+        const btnPj = document.getElementById('btn_pj');
+        const btnPf = document.getElementById('btn_pf');
+        const labelRazao = document.getElementById('label_razao_social');
+        const inputRazao = document.getElementById('razao_social');
+        const labelDoc = document.getElementById('label_cpf_cnpj');
+        const inputDoc = document.getElementById('cpf_cnpj');
+
+        inputHidden.value = tipo;
+
+        const classeAtiva = 'px-5 py-2.5 rounded-lg text-xs transition-all border-2 border-[#F97316] bg-orange-50/40 text-[#F97316] font-semibold';
+        const classeInativa = 'px-5 py-2.5 rounded-lg text-xs transition-all border border-gray-200 text-gray-600 hover:bg-gray-50';
+
+        if (tipo === 'Pessoa física') {
+            btnPf.className = classeAtiva;
+            btnPj.className = classeInativa;
+            labelRazao.textContent = 'NOME COMPLETO';
+            inputRazao.placeholder = 'Digite o nome completo';
+            labelDoc.textContent = 'CPF';
+            inputDoc.placeholder = '000.000.000-00';
+        } else {
+            btnPj.className = classeAtiva;
+            btnPf.className = classeInativa;
+            labelRazao.textContent = 'RAZÃO SOCIAL';
+            inputRazao.placeholder = 'Digite a razão social';
+            labelDoc.textContent = 'CNPJ';
+            inputDoc.placeholder = '00.000.000/0000-00';
+        }
+    }
+</script>
+{% endblock %}
