@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Editar material' if modo_edicao else 'Adicionar material' }} · R.N. Soluções Industriais{% endblock %}
+
+{% block page_header %}
+<h1 class="text-xl font-bold text-gray-900">Estoque</h1>
+<p class="text-xs text-gray-500 mt-0.5">Controle de materiais e insumos</p>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Topo da Página -->
+    <div class="flex items-center gap-3.5">
+        <a href="{{ url_for('estoque.detalhe_material', id=material.id) if modo_edicao and material else url_for('estoque.listar_estoque') }}"
+           title="Voltar para estoque"
+           class="w-9 h-9 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors shrink-0">
+            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+        </a>
+        <div>
+            <div class="text-[11px] font-bold text-[#F97316] uppercase tracking-wider">
+                ESTOQUE / {{ 'EDITAR MATERIAL' if modo_edicao else 'NOVO MATERIAL' }}
+            </div>
+            <h2 class="text-xl font-bold text-gray-900 mt-0.5">
+                {{ 'Editar material' if modo_edicao else 'Adicionar material' }}
+            </h2>
+            <p class="text-xs text-gray-500 mt-0.5">
+                {{ 'Atualize os dados técnicos e parâmetros de reposição do item.' if modo_edicao else 'Cadastre um novo item para controle de estoque.' }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Formulário POST dividido em 3 Cards Numerados -->
+    <form method="POST"
+          action="{{ url_for('estoque.editar_material', id=material.id) if modo_edicao and material else url_for('estoque.novo_material') }}"
+          class="space-y-6 mt-6">
+
+        <!-- Card 01 - Identificação -->
+        <section class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div class="flex items-center gap-3 pb-5 border-b border-gray-100">
+                <div class="w-8 h-8 rounded-lg bg-orange-50 text-[#F97316] font-bold text-xs flex items-center justify-center shrink-0">
+                    01
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Identificação</h3>
+                    <p class="text-xs text-gray-500">Dados principais do material</p>
+                </div>
+            </div>
+
+            <div class="mt-5 space-y-4">
+                <!-- Linha 1 -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-4">
+                        <label for="codigo"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            CÓDIGO DO MATERIAL
+                        </label>
+                        <input type="text"
+                               id="codigo"
+                               name="codigo"
+                               value="{{ dados.get('codigo', proximo_codigo) }}"
+                               required
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none transition-colors">
+                    </div>
+
+                    <div class="md:col-span-8">
+                        <label for="descricao"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            NOME OU DESCRIÇÃO
+                        </label>
+                        <input type="text"
+                               id="descricao"
+                               name="descricao"
+                               value="{{ dados.get('descricao', '') }}"
+                               placeholder="Ex.: Chapa aço carbono 3mm"
+                               required
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                    </div>
+                </div>
+
+                <!-- Linha 2 -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-4">
+                        <label for="categoria"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            CATEGORIA
+                        </label>
+                        <select id="categoria"
+                                name="categoria"
+                                class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none transition-colors">
+                            {% for cat in categorias %}
+                            <option value="{{ cat }}" {% if dados.get('categoria', 'Chapas') == cat %}selected{% endif %}>{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="md:col-span-4">
+                        <label for="tipo_material"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            TIPO DE MATERIAL
+                        </label>
+                        <select id="tipo_material"
+                                name="tipo_material"
+                                class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none transition-colors">
+                            {% set tipos_opcoes = ['Aço carbono', 'Aço estrutural', 'Insumo de solda', 'Aço galvanizado', 'Aço inox'] %}
+                            {% for t in tipos_opcoes %}
+                            <option value="{{ t }}" {% if dados.get('tipo_material', 'Aço carbono') == t %}selected{% endif %}>{{ t }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="md:col-span-4">
+                        <label for="unidade"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            UNIDADE DE MEDIDA
+                        </label>
+                        <select id="unidade"
+                                name="unidade"
+                                class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none transition-colors">
+                            <option value="UN" {% if dados.get('unidade', 'UN') == 'UN' %}selected{% endif %}>Unidade</option>
+                            <option value="M" {% if dados.get('unidade') == 'M' %}selected{% endif %}>Metro (M)</option>
+                            <option value="BR" {% if dados.get('unidade') == 'BR' %}selected{% endif %}>Barra (BR)</option>
+                            <option value="KG" {% if dados.get('unidade') == 'KG' %}selected{% endif %}>Quilograma (KG)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Card 02 - Informações de estoque -->
+        <section class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div class="flex items-center gap-3 pb-5 border-b border-gray-100">
+                <div class="w-8 h-8 rounded-lg bg-orange-50 text-[#F97316] font-bold text-xs flex items-center justify-center shrink-0">
+                    02
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Informações de estoque</h3>
+                    <p class="text-xs text-gray-500">Quantidade, custo e ponto de reposição</p>
+                </div>
+            </div>
+
+            <div class="mt-5 space-y-4">
+                <!-- Linha 1 -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-4">
+                        {% if modo_edicao %}
+                        <label for="disponivel"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            QUANTIDADE ATUAL
+                        </label>
+                        <input type="text"
+                               id="disponivel"
+                               name="disponivel"
+                               value="{{ dados.get('disponivel', '') }}"
+                               placeholder="0,00"
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                        {% else %}
+                        <label for="quantidade_inicial"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            QUANTIDADE INICIAL
+                        </label>
+                        <input type="text"
+                               id="quantidade_inicial"
+                               name="quantidade_inicial"
+                               value="{{ dados.get('quantidade_inicial', '') }}"
+                               placeholder="0,00"
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                        {% endif %}
+                    </div>
+
+                    <div class="md:col-span-4">
+                        <label for="minimo"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            ESTOQUE MÍNIMO
+                        </label>
+                        <input type="text"
+                               id="minimo"
+                               name="minimo"
+                               value="{{ dados.get('minimo', '') }}"
+                               placeholder="0,00"
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                    </div>
+
+                    <div class="md:col-span-4">
+                        <label for="custo_unitario"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            CUSTO UNITÁRIO
+                        </label>
+                        <input type="text"
+                               id="custo_unitario"
+                               name="custo_unitario"
+                               value="{{ dados.get('custo_unitario', '') }}"
+                               placeholder="R$ 0,00"
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                    </div>
+                </div>
+
+                <!-- Linha 2 -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-8">
+                        <label for="localizacao"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            LOCALIZAÇÃO NO ESTOQUE
+                        </label>
+                        <input type="text"
+                               id="localizacao"
+                               name="localizacao"
+                               value="{{ dados.get('localizacao', '') }}"
+                               placeholder="Ex.: Setor A · Estante 04"
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                    </div>
+
+                    <div class="md:col-span-4">
+                        <label for="controle_lote"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            CONTROLE DE LOTE
+                        </label>
+                        <select id="controle_lote"
+                                name="controle_lote"
+                                class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none transition-colors">
+                            <option value="Não utilizado" {% if dados.get('controle_lote', 'Não utilizado') == 'Não utilizado' %}selected{% endif %}>Não utilizado</option>
+                            <option value="Por lote" {% if dados.get('controle_lote') == 'Por lote' %}selected{% endif %}>Por lote</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Card 03 - Dados complementares -->
+        <section class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div class="flex items-center gap-3 pb-5 border-b border-gray-100">
+                <div class="w-8 h-8 rounded-lg bg-orange-50 text-[#F97316] font-bold text-xs flex items-center justify-center shrink-0">
+                    03
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Dados complementares</h3>
+                    <p class="text-xs text-gray-500">Origem e informações adicionais</p>
+                </div>
+            </div>
+
+            <div class="mt-5 space-y-4">
+                <!-- Linha 1 -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-8">
+                        <label for="fornecedor"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            FORNECEDOR
+                        </label>
+                        <input type="text"
+                               id="fornecedor"
+                               name="fornecedor"
+                               list="lista_fornecedores"
+                               value="{{ dados.get('fornecedor', '') }}"
+                               placeholder="Ex.: Aços Paulista Distribuidora"
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                        <datalist id="lista_fornecedores">
+                            <option value="Aços Paulista Distribuidora"></option>
+                            <option value="Gerdau Aços"></option>
+                            <option value="Esab Brasil"></option>
+                        </datalist>
+                    </div>
+
+                    <div class="md:col-span-4">
+                        <label for="situacao"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            SITUAÇÃO
+                        </label>
+                        <select id="situacao"
+                                name="situacao"
+                                class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none transition-colors">
+                            <option value="Ativo" {% if dados.get('situacao', 'Ativo') == 'Ativo' %}selected{% endif %}>Ativo</option>
+                            <option value="Inativo" {% if dados.get('situacao') == 'Inativo' %}selected{% endif %}>Inativo</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Linha 2 -->
+                <div>
+                    <label for="observacoes"
+                           class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                        OBSERVAÇÕES
+                    </label>
+                    <textarea id="observacoes"
+                              name="observacoes"
+                              rows="3"
+                              placeholder="Detalhes técnicos, especificações ou instruções de armazenamento..."
+                              class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">{{ dados.get('observacoes', '') }}</textarea>
+                </div>
+            </div>
+        </section>
+
+        <!-- Rodapé do Formulário -->
+        <div class="flex items-center justify-end gap-3 pt-2">
+            <a href="{{ url_for('estoque.detalhe_material', id=material.id) if modo_edicao and material else url_for('estoque.listar_estoque') }}"
+               class="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-medium px-5 py-2.5 rounded-lg text-sm transition-colors">
+                Cancelar
+            </a>
+            <button type="submit"
+                    class="bg-[#F97316] hover:bg-orange-600 text-white font-semibold px-6 py-2.5 rounded-lg text-sm shadow-sm transition-colors">
+                Salvar material
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Estoque · R.N. Soluções Industriais{% endblock %}
+
+{% block page_header %}
+<h1 class="text-xl font-bold text-gray-900">Estoque</h1>
+<p class="text-xs text-gray-500 mt-0.5">Controle de materiais e insumos</p>
+{% endblock %}
+
+{% block content %}
+<div>
+    <!-- Linha de 4 KPI Cards no Topo -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
+        <!-- Card 1 - ITENS CADASTRADOS -->
+        <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm flex items-start gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
+                <i data-lucide="package" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">ITENS CADASTRADOS</p>
+                <p class="text-2xl font-bold text-gray-900 mt-1">{{ indicadores.total_itens }}</p>
+                <p class="text-xs text-gray-400 mt-0.5">{{ indicadores.total_categorias }} categorias</p>
+            </div>
+        </div>
+
+        <!-- Card 2 - VALOR EM ESTOQUE -->
+        <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm flex items-start gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                <i data-lucide="package" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">VALOR EM ESTOQUE</p>
+                <p class="text-2xl font-bold text-gray-900 mt-1">{{ indicadores.valor_total_estoque | moeda }}</p>
+                <p class="text-xs text-emerald-600 font-medium mt-0.5">+4,2% neste mês</p>
+            </div>
+        </div>
+
+        <!-- Card 3 - ESTOQUE BAIXO -->
+        <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm flex items-start gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-orange-50 text-[#F97316] flex items-center justify-center shrink-0">
+                <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">ESTOQUE BAIXO</p>
+                <p class="text-2xl font-bold text-gray-900 mt-1">{{ itens_baixo_estoque }} itens</p>
+                <p class="text-xs text-[#F97316] font-medium mt-0.5">Reposição necessária</p>
+            </div>
+        </div>
+
+        <!-- Card 4 - MOVIMENTAÇÕES -->
+        <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm flex items-start gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
+                <i data-lucide="chevron-right" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">MOVIMENTAÇÕES</p>
+                <p class="text-2xl font-bold text-gray-900 mt-1">{{ indicadores.total_movimentacoes }}</p>
+                <p class="text-xs text-gray-400 mt-0.5">Nos últimos 30 dias</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barra de Busca e Botão Adicionar -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <form method="GET" action="{{ url_for('estoque.listar_estoque') }}" class="relative">
+            {% if categoria_atual and categoria_atual != 'Todas' %}
+            <input type="hidden" name="categoria" value="{{ categoria_atual }}">
+            {% endif %}
+            <div class="w-96 max-w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm flex items-center gap-2.5 shadow-sm focus-within:border-[#F97316] focus-within:ring-1 focus-within:ring-[#F97316]/30 transition-all">
+                <i data-lucide="search" class="w-4 h-4 text-gray-400 shrink-0"></i>
+                <input type="text"
+                       name="q"
+                       value="{{ busca or '' }}"
+                       placeholder="Buscar material por código ou descrição..."
+                       class="w-full bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 text-sm">
+                {% if busca %}
+                <a href="{{ url_for('estoque.listar_estoque', categoria=categoria_atual) }}"
+                   title="Limpar busca"
+                   class="text-gray-400 hover:text-gray-600">
+                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </a>
+                {% endif %}
+            </div>
+        </form>
+
+        <a href="{{ url_for('estoque.novo_material') }}"
+           class="bg-[#F97316] hover:bg-orange-600 text-white font-medium px-4 py-2.5 rounded-lg inline-flex items-center gap-2 text-sm shadow-sm transition-colors self-start sm:self-auto">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Adicionar material</span>
+        </a>
+    </div>
+
+    <!-- Abas de Categorias -->
+    <div class="flex flex-wrap items-center gap-2 mt-4">
+        <a href="{{ url_for('estoque.listar_estoque', q=busca if busca else None, categoria='Todas') }}"
+           class="px-3.5 py-1.5 rounded-lg text-xs transition-all {% if categoria_atual == 'Todas' %}border border-[#F97316] bg-orange-50/50 text-[#F97316] font-semibold{% else %}bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium{% endif %}">
+            Todas as categorias
+        </a>
+
+        {% for cat in categorias %}
+        <a href="{{ url_for('estoque.listar_estoque', q=busca if busca else None, categoria=cat) }}"
+           class="px-3.5 py-1.5 rounded-lg text-xs transition-all {% if categoria_atual == cat %}border border-[#F97316] bg-orange-50/50 text-[#F97316] font-semibold{% else %}bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium{% endif %}">
+            {{ cat }}
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- Grid Principal Inferior -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-5">
+        <!-- Coluna Esquerda (2/3): Posição de estoque -->
+        <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                <h2 class="font-bold text-gray-900 text-sm">Posição de estoque</h2>
+                <button type="button"
+                        class="bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 px-3 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 transition-colors">
+                    <i data-lucide="filter" class="w-3.5 h-3.5 text-gray-400"></i>
+                    <span>Filtros</span>
+                </button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-[#FAFAFB] border-b border-gray-100 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                            <th class="px-5 py-3.5">CÓDIGO</th>
+                            <th class="px-5 py-3.5">DESCRIÇÃO</th>
+                            <th class="px-5 py-3.5">CATEGORIA</th>
+                            <th class="px-4 py-3.5">UN.</th>
+                            <th class="px-4 py-3.5">DISPONÍVEL</th>
+                            <th class="px-4 py-3.5">MÍNIMO</th>
+                            <th class="px-5 py-3.5">STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 text-sm">
+                        {% for m in materiais %}
+                        <tr class="hover:bg-gray-50/70 transition">
+                            <td class="px-5 py-4 whitespace-nowrap">
+                                <a href="{{ url_for('estoque.detalhe_material', id=m.id) }}"
+                                   class="text-[#F97316] font-semibold hover:underline">
+                                    {{ m.codigo }}
+                                </a>
+                            </td>
+                            <td class="px-5 py-4">
+                                <a href="{{ url_for('estoque.detalhe_material', id=m.id) }}"
+                                   class="font-semibold text-gray-800 hover:text-[#F97316] transition-colors">
+                                    {{ m.descricao }}
+                                </a>
+                            </td>
+                            <td class="px-5 py-4 text-gray-500 whitespace-nowrap">{{ m.categoria }}</td>
+                            <td class="px-4 py-4 text-gray-500 whitespace-nowrap">{{ m.unidade }}</td>
+                            <td class="px-4 py-4 whitespace-nowrap">
+                                {% if m.disponivel <= 0 or m.disponivel < m.minimo %}
+                                <span class="text-red-600 font-bold">{{ m.disponivel_formatado }}</span>
+                                {% else %}
+                                <span class="text-gray-900 font-bold">{{ m.disponivel_formatado }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-4 text-gray-500 whitespace-nowrap">{{ m.minimo_formatado }}</td>
+                            <td class="px-5 py-4 whitespace-nowrap">
+                                {% if m.status_estoque == 'Indisponível' %}
+                                <span class="inline-flex items-center gap-1 bg-red-100 text-red-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+                                    • Indisponível
+                                </span>
+                                {% elif m.status_estoque == 'Baixo' %}
+                                <span class="inline-flex items-center gap-1 bg-red-50 text-red-600 text-xs font-medium px-2.5 py-1 rounded-full">
+                                    • Baixo
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs font-medium px-2.5 py-1 rounded-full">
+                                    • Normal
+                                </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="px-6 py-10 text-center text-sm text-gray-400">
+                                Nenhum material encontrado para os filtros selecionados.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Coluna Direita (1/3): Últimas movimentações -->
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between pb-4 border-b border-gray-100">
+                    <h2 class="font-bold text-gray-900 text-sm">Últimas movimentações</h2>
+                    {% if materiais %}
+                    <a href="{{ url_for('estoque.detalhe_material', id=materiais[0].id) }}"
+                       class="text-xs font-semibold text-[#F97316] hover:underline">
+                        Ver histórico &gt;
+                    </a>
+                    {% else %}
+                    <span class="text-xs font-semibold text-[#F97316]">Ver histórico &gt;</span>
+                    {% endif %}
+                </div>
+
+                <div class="divide-y divide-gray-100 mt-1">
+                    {% for mov in ultimas_movimentacoes %}
+                    <div class="py-3.5 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                            {% if mov.tipo == 'Entrada' %}
+                            <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 text-sm font-bold">
+                                +
+                            </div>
+                            {% else %}
+                            <div class="w-8 h-8 rounded-full bg-orange-50 text-[#F97316] flex items-center justify-center shrink-0">
+                                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                            </div>
+                            {% endif %}
+
+                            <div class="min-w-0">
+                                <a href="{{ url_for('estoque.detalhe_material', id=mov.material_id) }}"
+                                   class="block text-xs font-semibold text-gray-800 hover:text-[#F97316] truncate">
+                                    {{ mov.material.descricao }}
+                                </a>
+                                <span class="block text-[11px] text-gray-400 mt-0.5">
+                                    {{ mov.tipo }} · {{ mov.data_hora }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="shrink-0 text-xs font-semibold">
+                            {% if mov.tipo == 'Entrada' %}
+                            <span class="text-emerald-600">+ {{ mov.quantidade_formatada }} {{ mov.material.unidade_abreviada }}</span>
+                            {% else %}
+                            <span class="text-gray-700">- {{ mov.quantidade_formatada }} {{ mov.material.unidade_abreviada }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="py-8 text-center text-xs text-gray-400">
+                        Nenhuma movimentação registrada recentemente.
+                    </p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
