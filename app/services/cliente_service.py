@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from app.models.cliente import Cliente
 from app.repositories.cliente_repository import ClienteRepository
@@ -19,3 +19,6 @@ class ClienteService:
             "ativos": self.repository.contar_ativos(),
         }
 
+    def cadastrar_cliente(self, dados: Dict[str, Any]) -> Cliente | None:
+        """Esqueleto inicial para etapa RED do TDD (ainda sem validação e persistência)."""
+        return None
