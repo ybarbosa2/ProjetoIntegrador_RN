@@ -1,0 +1,611 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Editar Ordem de Serviço' if modo_edicao else 'Nova Ordem de Serviço' }} · R.N. Soluções Industriais{% endblock %}
+
+{% block page_header %}
+<h1 class="text-xl font-bold text-gray-900">Ordens de Serviço</h1>
+<p class="text-xs text-gray-500 mt-0.5">Planejamento e acompanhamento da produção</p>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Topo da Página -->
+    <div class="flex items-center gap-3.5">
+        <a href="{{ url_for('os.detalhe_os', id=ordem.id) if modo_edicao and ordem else url_for('os.listar_os') }}"
+           title="Voltar para Ordens de Serviço"
+           class="w-9 h-9 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors shrink-0">
+            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+        </a>
+        <div>
+            <div class="text-[11px] font-bold text-[#F97316] uppercase tracking-wider">
+                ORDENS DE SERVIÇO / {{ 'EDITAR ORDEM' if modo_edicao else 'NOVA ORDEM' }}
+            </div>
+            <h2 class="text-xl font-bold text-gray-900 mt-0.5">
+                {{ ('Editar ordem de serviço #' ~ ordem.numero) if modo_edicao and ordem else 'Nova ordem de serviço' }}
+            </h2>
+            <p class="text-xs text-gray-500 mt-0.5">
+                {{ 'Atualize o andamento, prazos ou especificações técnicas da ordem.' if modo_edicao else 'Registre todas as informações para iniciar a produção.' }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Formulário POST dividido em Cards Numerados -->
+    <form method="POST"
+          action="{{ url_for('os.editar_os', id=ordem.id) if modo_edicao and ordem else url_for('os.nova_os') }}"
+          class="space-y-6 mt-6">
+
+        <!-- Card 01 - Identificação da OS -->
+        <section class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div class="flex items-center gap-3 pb-5 border-b border-gray-100">
+                <div class="w-8 h-8 rounded-lg bg-orange-50 text-[#F97316] font-bold text-xs flex items-center justify-center shrink-0">
+                    01
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Identificação da OS</h3>
+                    <p class="text-xs text-gray-500">Controle de abertura e prazo</p>
+                </div>
+            </div>
+
+            <div class="mt-5 space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="numero"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            NÚMERO DA ORDEM
+                        </label>
+                        <input type="text"
+                               id="numero"
+                               name="numero"
+                               value="{{ dados.get('numero', proximo_numero) }}"
+                               {% if modo_edicao %}readonly{% endif %}
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none transition-colors">
+                    </div>
+
+                    <div>
+                        <label for="data_abertura"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            DATA DE ABERTURA
+                        </label>
+                        <input type="text"
+                               id="data_abertura"
+                               name="data_abertura"
+                               value="{{ dados.get('data_abertura', '') }}"
+                               placeholder="DD/MM/AAAA"
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none transition-colors">
+                    </div>
+
+                    <div>
+                        <label for="prazo_entrega"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            PRAZO DE ENTREGA
+                        </label>
+                        <input type="text"
+                               id="prazo_entrega"
+                               name="prazo_entrega"
+                               value="{{ dados.get('prazo_entrega', '') }}"
+                               placeholder="DD/MM/AAAA"
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none transition-colors">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="status"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            STATUS {{ 'ATUAL' if modo_edicao else 'INICIAL' }}
+                        </label>
+                        <select id="status"
+                                name="status"
+                                class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none transition-colors">
+                            {% for st in status_opcoes %}
+                            <option value="{{ st }}" {% if dados.get('status', 'Aberta') == st %}selected{% endif %}>{{ st }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Card 02 - Dados do cliente -->
+        <section class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-gray-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-orange-50 text-[#F97316] font-bold text-xs flex items-center justify-center shrink-0">
+                        02
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-gray-900">Dados do cliente</h3>
+                        <p class="text-xs text-gray-500">Cliente vinculado à ordem</p>
+                    </div>
+                </div>
+
+                <button type="button"
+                        onclick="abrirModalCadastroRapido()"
+                        class="border border-[#F97316] text-[#F97316] hover:bg-orange-50 px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors self-start sm:self-auto">
+                    <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+                    <span>+ Cadastro Rápido de Cliente</span>
+                </button>
+            </div>
+
+            <div class="mt-5 space-y-4">
+                <!-- Linha 1: SELECIONAR CLIENTE e CÓDIGO -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-8">
+                        <label for="cliente_id"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            SELECIONAR CLIENTE
+                        </label>
+                        <select id="cliente_id"
+                                name="cliente_id"
+                                onchange="atualizarCamposCliente()"
+                                class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none transition-colors">
+                            <option value="" data-codigo="" data-nome="" data-telefone="">Selecione um cliente cadastrado...</option>
+                            {% for cli in clientes %}
+                            <option value="{{ cli.id }}"
+                                    data-codigo="{{ cli.codigo }}"
+                                    data-nome="{{ cli.razao_social }}"
+                                    data-telefone="{{ cli.telefone or '' }}"
+                                    {% if (dados.get('cliente_id') | string) == (cli.id | string) %}selected{% endif %}>
+                                {{ cli.razao_social }} ({{ cli.codigo }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="md:col-span-4">
+                        <label for="cliente_codigo_view"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            CÓDIGO
+                        </label>
+                        <input type="text"
+                               id="cliente_codigo_view"
+                               readonly
+                               placeholder="CLI-XXXX"
+                               class="w-full bg-gray-100/80 border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-600 outline-none">
+                    </div>
+                </div>
+
+                <!-- Linha 2: NOME DO CLIENTE e TELEFONE DE CONTATO -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-8">
+                        <label for="cliente_nome_view"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            NOME DO CLIENTE
+                        </label>
+                        <input type="text"
+                               id="cliente_nome_view"
+                               readonly
+                               placeholder="Razão social ou nome completo"
+                               class="w-full bg-gray-100/80 border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-600 outline-none">
+                    </div>
+
+                    <div class="md:col-span-4">
+                        <label for="cliente_telefone_view"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            TELEFONE DE CONTATO
+                        </label>
+                        <input type="text"
+                               id="cliente_telefone_view"
+                               readonly
+                               placeholder="(00) 0000-0000"
+                               class="w-full bg-gray-100/80 border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-600 outline-none">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Card 03 - Descrição do serviço -->
+        <section class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div class="flex items-center gap-3 pb-5 border-b border-gray-100">
+                <div class="w-8 h-8 rounded-lg bg-orange-50 text-[#F97316] font-bold text-xs flex items-center justify-center shrink-0">
+                    03
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Descrição do serviço</h3>
+                    <p class="text-xs text-gray-500">Escopo e responsabilidade técnica</p>
+                </div>
+            </div>
+
+            <div class="mt-5 space-y-4">
+                <!-- Linha 1 (3 colunas) -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="tipo_servico"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            TIPO DE SERVIÇO
+                        </label>
+                        <select id="tipo_servico"
+                                name="tipo_servico"
+                                class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none transition-colors">
+                            {% set tipos_os = ['Fabricação de estrutura', 'Fabricação de estrutura metálica', 'Fabricação e automação', 'Manutenção industrial', 'Serralheria industrial'] %}
+                            {% for ts in tipos_os %}
+                            <option value="{{ ts }}" {% if dados.get('tipo_servico') == ts %}selected{% endif %}>{{ ts }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="quantidade_servico"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            QUANTIDADE
+                        </label>
+                        <input type="text"
+                               id="quantidade_servico"
+                               name="quantidade_servico"
+                               value="{{ dados.get('quantidade_servico', '1 conjunto') }}"
+                               placeholder="Ex.: 1 conjunto"
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none transition-colors">
+                    </div>
+
+                    <div>
+                        <label for="responsavel"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            FUNCIONÁRIO RESPONSÁVEL
+                        </label>
+                        <select id="responsavel"
+                                name="responsavel"
+                                class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none transition-colors">
+                            {% set responsaveis = ['Carlos Mendes', 'Bruno Lima', 'André Souza'] %}
+                            {% for resp_nome in responsaveis %}
+                            <option value="{{ resp_nome }}" {% if dados.get('responsavel', 'Carlos Mendes') == resp_nome %}selected{% endif %}>{{ resp_nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Título Resumo + Valor da Mão de Obra -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-8">
+                        <label for="titulo_resumo"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            TÍTULO RESUMO DO PROJETO
+                        </label>
+                        <input type="text"
+                               id="titulo_resumo"
+                               name="titulo_resumo"
+                               value="{{ dados.get('titulo_resumo', '') }}"
+                               placeholder="Ex.: Estrutura metálica galpão"
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                    </div>
+
+                    <div class="md:col-span-4">
+                        <label for="valor_mao_de_obra"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            VALOR DA MÃO DE OBRA (R$)
+                        </label>
+                        <input type="text"
+                               id="valor_mao_de_obra"
+                               name="valor_mao_de_obra"
+                               value="{{ dados.get('valor_mao_de_obra', '0,00') }}"
+                               placeholder="Ex.: 8500,00"
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                    </div>
+                </div>
+
+                <!-- Linha 2 (2 colunas): DESCRIÇÃO DETALHADA e ESPECIFICAÇÕES TÉCNICAS -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="descricao_detalhada"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            DESCRIÇÃO DETALHADA
+                        </label>
+                        <textarea id="descricao_detalhada"
+                                  name="descricao_detalhada"
+                                  rows="3"
+                                  placeholder="Fabricação e montagem de estrutura metálica para ampliação do galpão industrial."
+                                  class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">{{ dados.get('descricao_detalhada', '') }}</textarea>
+                    </div>
+
+                    <div>
+                        <label for="especificacoes_tecnicas"
+                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            ESPECIFICAÇÕES TÉCNICAS
+                        </label>
+                        <textarea id="especificacoes_tecnicas"
+                                  name="especificacoes_tecnicas"
+                                  rows="3"
+                                  placeholder="Perfis ASTM A36, acabamento com pintura epóxi cinza, conforme desenho técnico RN-284-B."
+                                  class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">{{ dados.get('especificacoes_tecnicas', '') }}</textarea>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Card 04 - Materiais e Insumos do Estoque (RF04 / US03) -->
+        {% if not modo_edicao %}
+        <section class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-gray-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-orange-50 text-[#F97316] font-bold text-xs flex items-center justify-center shrink-0">
+                        04
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-gray-900">Materiais utilizados do estoque</h3>
+                        <p class="text-xs text-gray-500">Selecione as peças e quantidades para vínculo e baixa automática de saldo</p>
+                    </div>
+                </div>
+
+                <button type="button"
+                        onclick="adicionarLinhaMaterial()"
+                        class="bg-[#181B20] hover:bg-gray-800 text-white px-3.5 py-2 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors self-start sm:self-auto">
+                    <i data-lucide="plus" class="w-3.5 h-3.5 text-[#F97316]"></i>
+                    <span>+ Adicionar material à OS</span>
+                </button>
+            </div>
+
+            <div id="container_materiais" class="space-y-3 mt-5">
+                {% for item_f in itens_form %}
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end bg-[#FAFAFB] border border-gray-200 rounded-lg p-3.5 linha-material">
+                    <div class="md:col-span-8">
+                        <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                            MATERIAL DO ESTOQUE
+                        </label>
+                        <select name="material_id[]"
+                                class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none">
+                            <option value="">Selecione um material...</option>
+                            {% for mat in materiais %}
+                            <option value="{{ mat.id }}" {% if (item_f.material_id | string) == (mat.id | string) %}selected{% endif %}>
+                                {{ mat.codigo }} · {{ mat.descricao }} (Saldo: {{ mat.disponivel_formatado }} {{ mat.unidade }} · {{ mat.custo_unitario | moeda }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                            QUANTIDADE
+                        </label>
+                        <input type="text"
+                               name="material_quantidade[]"
+                               value="{{ item_f.quantidade }}"
+                               placeholder="Ex.: 2"
+                               class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none">
+                    </div>
+                    <div class="md:col-span-1 flex justify-end">
+                        <button type="button"
+                                onclick="this.closest('.linha-material').remove()"
+                                title="Remover item"
+                                class="w-9 h-9 rounded-lg border border-gray-200 bg-white text-red-500 hover:bg-red-50 flex items-center justify-center">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <p id="aviso_sem_materiais"
+               class="text-xs text-gray-400 mt-3 {% if itens_form %}hidden{% endif %}">
+                Nenhum material vinculado ainda. Clique em "+ Adicionar material à OS" caso o serviço utilize insumos do estoque.
+            </p>
+        </section>
+        {% endif %}
+
+        <!-- Barra Final de Ações -->
+        <div class="flex items-center justify-end gap-3 pt-2">
+            <a href="{{ url_for('os.detalhe_os', id=ordem.id) if modo_edicao and ordem else url_for('os.listar_os') }}"
+               class="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-medium px-5 py-2.5 rounded-lg text-sm transition-colors">
+                Cancelar
+            </a>
+            <button type="submit"
+                    class="bg-[#F97316] hover:bg-orange-600 text-white font-semibold px-6 py-2.5 rounded-lg text-sm shadow-sm transition-colors">
+                {{ 'Salvar alterações' if modo_edicao else 'Abrir ordem de serviço' }}
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Template Oculto para Nova Linha de Material -->
+<template id="template_linha_material">
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end bg-[#FAFAFB] border border-gray-200 rounded-lg p-3.5 linha-material">
+        <div class="md:col-span-8">
+            <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                MATERIAL DO ESTOQUE
+            </label>
+            <select name="material_id[]"
+                    class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none">
+                <option value="">Selecione um material...</option>
+                {% for mat in materiais %}
+                <option value="{{ mat.id }}">
+                    {{ mat.codigo }} · {{ mat.descricao }} (Saldo: {{ mat.disponivel_formatado }} {{ mat.unidade }} · {{ mat.custo_unitario | moeda }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="md:col-span-3">
+            <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                QUANTIDADE
+            </label>
+            <input type="text"
+                   name="material_quantidade[]"
+                   placeholder="Ex.: 2"
+                   class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none">
+        </div>
+        <div class="md:col-span-1 flex justify-end">
+            <button type="button"
+                    onclick="removerLinhaMaterial(this)"
+                    title="Remover item"
+                    class="w-9 h-9 rounded-lg border border-gray-200 bg-white text-red-500 hover:bg-red-50 flex items-center justify-center text-xs font-bold">
+                ✕
+            </button>
+        </div>
+    </div>
+</template>
+
+<!-- Modal de Cadastro Rápido de Cliente (UC01-A1 / Seção 4.5) -->
+<div id="modal_cadastro_rapido"
+     class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-xl w-full max-w-lg overflow-hidden">
+        <div class="px-6 py-4 bg-[#181B20] text-white flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg border border-[#F97316] text-[#F97316] flex items-center justify-center font-bold text-xs">
+                    RN
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold">Cadastro Rápido de Cliente</h3>
+                    <p class="text-[11px] text-gray-400">Cadastre e vincule imediatamente à Ordem de Serviço</p>
+                </div>
+            </div>
+            <button type="button"
+                    onclick="fecharModalCadastroRapido()"
+                    class="text-gray-400 hover:text-white text-lg leading-none">
+                &times;
+            </button>
+        </div>
+
+        <div class="p-6 space-y-4">
+            <div id="erro_cadastro_rapido"
+                 class="hidden px-3.5 py-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium">
+            </div>
+
+            <div>
+                <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                    RAZÃO SOCIAL / NOME COMPLETO *
+                </label>
+                <input type="text"
+                       id="rapido_razao_social"
+                       placeholder="Ex.: Metalúrgica Sorocaba Ltda."
+                       class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-[#F97316] focus:outline-none">
+            </div>
+
+            <div>
+                <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                    CPF / CNPJ *
+                </label>
+                <input type="text"
+                       id="rapido_cpf_cnpj"
+                       placeholder="00.000.000/0000-00"
+                       class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-[#F97316] focus:outline-none">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                        TELEFONE
+                    </label>
+                    <input type="text"
+                           id="rapido_telefone"
+                           placeholder="(15) 99999-0000"
+                           class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-[#F97316] focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                        E-MAIL
+                    </label>
+                    <input type="email"
+                           id="rapido_email"
+                           placeholder="contato@empresa.com.br"
+                           class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-[#F97316] focus:outline-none">
+                </div>
+            </div>
+        </div>
+
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-end gap-2.5">
+            <button type="button"
+                    onclick="fecharModalCadastroRapido()"
+                    class="bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 font-medium px-4 py-2 rounded-lg text-xs">
+                Cancelar
+            </button>
+            <button type="button"
+                    id="btn_salvar_rapido"
+                    onclick="salvarClienteRapido()"
+                    class="bg-[#F97316] hover:bg-orange-600 text-white font-semibold px-4 py-2 rounded-lg text-xs shadow-sm">
+                Salvar e Selecionar
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function atualizarCamposCliente() {
+        const select = document.getElementById('cliente_id');
+        const opt = select.options[select.selectedIndex];
+        document.getElementById('cliente_codigo_view').value = opt ? (opt.getAttribute('data-codigo') || '') : '';
+        document.getElementById('cliente_nome_view').value = opt ? (opt.getAttribute('data-nome') || '') : '';
+        document.getElementById('cliente_telefone_view').value = opt ? (opt.getAttribute('data-telefone') || '') : '';
+    }
+
+    function adicionarLinhaMaterial() {
+        const tpl = document.getElementById('template_linha_material');
+        const container = document.getElementById('container_materiais');
+        const aviso = document.getElementById('aviso_sem_materiais');
+        if (!tpl || !container) return;
+        container.appendChild(tpl.content.cloneNode(true));
+        if (aviso) aviso.classList.add('hidden');
+    }
+
+    function removerLinhaMaterial(btn) {
+        const container = document.getElementById('container_materiais');
+        const aviso = document.getElementById('aviso_sem_materiais');
+        btn.closest('.linha-material')?.remove();
+        if (container && container.children.length === 0 && aviso) {
+            aviso.classList.remove('hidden');
+        }
+    }
+
+    function abrirModalCadastroRapido() {
+        const modal = document.getElementById('modal_cadastro_rapido');
+        document.getElementById('erro_cadastro_rapido').classList.add('hidden');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.getElementById('rapido_razao_social').focus();
+    }
+
+    function fecharModalCadastroRapido() {
+        const modal = document.getElementById('modal_cadastro_rapido');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    async function salvarClienteRapido() {
+        const erroBox = document.getElementById('erro_cadastro_rapido');
+        const btn = document.getElementById('btn_salvar_rapido');
+        erroBox.classList.add('hidden');
+
+        const payload = {
+            razao_social: document.getElementById('rapido_razao_social').value.trim(),
+            cpf_cnpj: document.getElementById('rapido_cpf_cnpj').value.trim(),
+            telefone: document.getElementById('rapido_telefone').value.trim(),
+            email: document.getElementById('rapido_email').value.trim()
+        };
+
+        btn.disabled = true;
+        try {
+            const resp = await fetch("{{ url_for('clientes.cadastro_rapido') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await resp.json();
+            if (!resp.ok || !data.sucesso) {
+                erroBox.textContent = data.erro || 'Não foi possível cadastrar o cliente.';
+                erroBox.classList.remove('hidden');
+                return;
+            }
+
+            const cli = data.cliente;
+            const select = document.getElementById('cliente_id');
+            const novaOpcao = document.createElement('option');
+            novaOpcao.value = cli.id;
+            novaOpcao.textContent = `${cli.razao_social} (${cli.codigo})`;
+            novaOpcao.setAttribute('data-codigo', cli.codigo || '');
+            novaOpcao.setAttribute('data-nome', cli.razao_social || '');
+            novaOpcao.setAttribute('data-telefone', cli.telefone || '');
+            novaOpcao.selected = true;
+            select.appendChild(novaOpcao);
+
+            atualizarCamposCliente();
+            document.getElementById('rapido_razao_social').value = '';
+            document.getElementById('rapido_cpf_cnpj').value = '';
+            document.getElementById('rapido_telefone').value = '';
+            document.getElementById('rapido_email').value = '';
+            fecharModalCadastroRapido();
+        } catch (e) {
+            erroBox.textContent = 'Erro de comunicação ao salvar cliente.';
+            erroBox.classList.remove('hidden');
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', atualizarCamposCliente);
+</script>
+{% endblock %}
