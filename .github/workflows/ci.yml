@@ -27,3 +27,4 @@ jobs:
 
       - name: Verificar Cobertura de Testes (Quality Gate)
         run: pytest --cov=app --cov-report=term-missing --cov-fail-under=80
+

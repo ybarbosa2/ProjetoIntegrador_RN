@@ -126,3 +126,4 @@ A qualidade do projeto é assegurada por testes unitários (incluindo TDD e isol
   ```bash
   pytest --cov=app --cov-report=term-missing
   ```
+
