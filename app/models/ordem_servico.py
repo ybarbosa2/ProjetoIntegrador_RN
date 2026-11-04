@@ -8,7 +8,7 @@ class OrdemServico(db.Model):
     numero = db.Column(db.String(20), unique=True, nullable=False)
     cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=False)
     data_abertura = db.Column(db.String(20), nullable=False)
-    prazo_entrega = db.Column(db.String(20), nullable=False)
+    prazo_entrega = db.Column(db.String(20), nullable=True, default="")
     status = db.Column(db.String(30), default="Aberta")
     titulo_resumo = db.Column(db.String(150))
     tipo_servico = db.Column(db.String(150))

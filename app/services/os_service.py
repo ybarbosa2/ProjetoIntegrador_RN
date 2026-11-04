@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict, List, Mapping, Optional
 
 from app.models.ordem_servico import ItemOrdemServico, OrdemServico
@@ -52,11 +52,13 @@ class OsService:
         busca: Optional[str] = None,
         status: Optional[str] = None,
         cliente_id: Optional[int | str] = None,
+        periodo: Optional[str] = None,
     ) -> List[OrdemServico]:
         return self.os_repository.listar_todas(
             busca=busca,
             status=status,
             cliente_id=cliente_id,
+            periodo=periodo,
         )
 
     def buscar_por_id(self, os_id: int) -> Optional[OrdemServico]:
@@ -124,9 +126,8 @@ class OsService:
 
         hoje = datetime.now()
         data_abertura = (dados.get("data_abertura") or "").strip() or hoje.strftime("%d/%m/%Y")
-        prazo_entrega = (dados.get("prazo_entrega") or "").strip() or (
-            hoje + timedelta(days=15)
-        ).strftime("%d/%m/%Y")
+        # Prazo de entrega opcional (pode permanecer em branco)
+        prazo_entrega = (dados.get("prazo_entrega") or "").strip()
         status = (dados.get("status") or "Aberta").strip()
         quantidade_servico = (dados.get("quantidade_servico") or "1 conjunto").strip()
         responsavel = (dados.get("responsavel") or "Carlos Mendes").strip()
@@ -135,6 +136,9 @@ class OsService:
             dados.get("valor_mao_de_obra", 0.0),
             "Valor da mão de obra",
         )
+
+        if lista_materiais is None and "itens" in dados:
+            lista_materiais = dados.get("itens")
 
         # Pré-validação de todos os materiais solicitados antes de realizar baixas (evita baixa parcial)
         materiais_validados: List[tuple[Any, float]] = []
@@ -191,7 +195,101 @@ class OsService:
 
         return self.os_repository.salvar(nova_os)
 
-    def atualizar_status_ou_dados(self, os_id: int, dados: Mapping[str, Any]) -> OrdemServico:
+    def _sincronizar_itens_estoque(
+        self,
+        ordem: OrdemServico,
+        lista_materiais: List[Mapping[str, Any]],
+    ) -> None:
+        """Sincroniza itens da O.S. com o estoque: devolve reduções/remoções e baixa acréscimos/novos."""
+        qtd_atual_por_mat: Dict[int, float] = {}
+        preco_atual_por_mat: Dict[int, float] = {}
+        for item_existente in ordem.itens or []:
+            mid = int(item_existente.material_id)
+            qtd_atual_por_mat[mid] = round(
+                qtd_atual_por_mat.get(mid, 0.0) + float(item_existente.quantidade or 0.0),
+                4,
+            )
+            preco_atual_por_mat[mid] = float(item_existente.valor_unitario or 0.0)
+
+        qtd_nova_por_mat: Dict[int, float] = {}
+        ordem_materiais: List[int] = []
+        for item_req in lista_materiais:
+            mat_id_raw = item_req.get("material_id")
+            qtd_raw = item_req.get("quantidade")
+            if mat_id_raw is None or str(mat_id_raw).strip() == "":
+                continue
+            qtd = _parse_valor_monetario(qtd_raw, "Quantidade do material")
+            if qtd <= 0:
+                continue
+            mid = int(mat_id_raw)
+            if mid not in qtd_nova_por_mat:
+                ordem_materiais.append(mid)
+                qtd_nova_por_mat[mid] = 0.0
+            qtd_nova_por_mat[mid] = round(qtd_nova_por_mat[mid] + qtd, 4)
+
+        # 1. Pré-validação de existência e disponibilidade de saldo para todos os acréscimos
+        for mid in ordem_materiais:
+            material = self.estoque_service.buscar_por_id(mid)
+            if material is None:
+                raise ValueError(f"Material ID {mid} não encontrado no estoque.")
+            delta = round(qtd_nova_por_mat[mid] - qtd_atual_por_mat.get(mid, 0.0), 4)
+            if delta > 0 and delta > float(material.disponivel or 0.0):
+                raise ValueError("Saldo insuficiente no estoque")
+
+        responsavel = ordem.responsavel or "Carlos Mendes"
+
+        # 2. Devolve ao estoque itens removidos ou com quantidade reduzida
+        for mid, qtd_antiga in qtd_atual_por_mat.items():
+            qtd_nova = qtd_nova_por_mat.get(mid, 0.0)
+            delta = round(qtd_nova - qtd_antiga, 4)
+            if delta < 0:
+                material = self.estoque_service.buscar_por_id(mid)
+                if material is not None:
+                    self.estoque_service.registrar_entrada(
+                        material,
+                        quantidade=abs(delta),
+                        responsavel=responsavel,
+                        descricao_movimentacao=f"Estorno de edição da {ordem.numero}",
+                    )
+
+        # 3. Realiza baixa no estoque para itens novos ou com quantidade aumentada
+        for mid in ordem_materiais:
+            qtd_antiga = qtd_atual_por_mat.get(mid, 0.0)
+            qtd_nova = qtd_nova_por_mat[mid]
+            delta = round(qtd_nova - qtd_antiga, 4)
+            if delta > 0:
+                material = self.estoque_service.buscar_por_id(mid)
+                self.estoque_service.registrar_saida(
+                    material,
+                    quantidade=delta,
+                    responsavel=responsavel,
+                    descricao_movimentacao=f"Saída para {ordem.numero}",
+                )
+
+        # 4. Reconstrói a lista de itens da O.S. e recalcula os totais via CalculadoraOrcamentoService
+        novos_itens: List[ItemOrdemServico] = []
+        for mid in ordem_materiais:
+            material = self.estoque_service.buscar_por_id(mid)
+            valor_unit = preco_atual_por_mat.get(
+                mid,
+                float(material.custo_unitario or 0.0) if material else 0.0,
+            )
+            novos_itens.append(
+                ItemOrdemServico(
+                    material_id=mid,
+                    quantidade=qtd_nova_por_mat[mid],
+                    valor_unitario=valor_unit,
+                )
+            )
+        ordem.itens = novos_itens
+        self.calculadora_service.calcular_totais_os(ordem)
+
+    def atualizar_status_ou_dados(
+        self,
+        os_id: int,
+        dados: Mapping[str, Any],
+        lista_materiais: Optional[List[Mapping[str, Any]]] = None,
+    ) -> OrdemServico:
         ordem = self.os_repository.buscar_por_id(os_id)
         if ordem is None:
             raise ValueError("Ordem de Serviço não encontrada.")
@@ -206,8 +304,8 @@ class OsService:
             ordem.status = dados["status"].strip()
         if "data_abertura" in dados and (dados.get("data_abertura") or "").strip():
             ordem.data_abertura = dados["data_abertura"].strip()
-        if "prazo_entrega" in dados and (dados.get("prazo_entrega") or "").strip():
-            ordem.prazo_entrega = dados["prazo_entrega"].strip()
+        if "prazo_entrega" in dados:
+            ordem.prazo_entrega = (dados.get("prazo_entrega") or "").strip()
         if "titulo_resumo" in dados and (dados.get("titulo_resumo") or "").strip():
             ordem.titulo_resumo = dados["titulo_resumo"].strip()
         if "tipo_servico" in dados and (dados.get("tipo_servico") or "").strip():
@@ -230,7 +328,16 @@ class OsService:
                 "Valor da mão de obra",
             )
 
+        if lista_materiais is None and "itens" in dados:
+            lista_materiais = dados.get("itens")
+
+        if lista_materiais is not None:
+            self._sincronizar_itens_estoque(ordem, list(lista_materiais))
+
+        self.calculadora_service.calcular_totais_os(ordem)
         return self.os_repository.salvar(ordem)
+
+    atualizar_ordem_servico = atualizar_status_ou_dados
 
 
 OSService = OsService

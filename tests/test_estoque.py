@@ -308,3 +308,37 @@ def test_validacoes_unitarias_estoque_service(app):
             },
         )
         assert editado.subtitulo == "Chapa laminada a quente certificada"
+
+
+def test_cadastro_material_com_categoria_tipo_e_unidade_personalizados(app, client):
+    """ETAPA 6 (PASSO 4 / PASSO 7): Valida cadastro de material com categoria, tipo e unidade 100% customizados e filtro dinâmico."""
+    resp_post = client.post(
+        "/estoque/novo",
+        data={
+            "codigo": "MAT-0093",
+            "descricao": "Parafuso Sextavado Estrutural M16",
+            "categoria": "Fixadores Especiais",
+            "tipo_material": "Aço Liga Temperado 8.8",
+            "unidade": "CENTO",
+            "quantidade_inicial": "12",
+            "minimo": "5",
+            "custo_unitario": "95,00",
+            "fornecedor": "Fixadores Ribeirão",
+            "localizacao": "Setor C · Gaveteiro 12",
+            "situacao": "Ativo",
+        },
+        follow_redirects=True,
+    )
+    assert resp_post.status_code == 200
+    html_lista = resp_post.get_data(as_text=True)
+    assert "MAT-0093" in html_lista
+    assert "Parafuso Sextavado Estrutural M16" in html_lista
+    assert "Fixadores Especiais" in html_lista
+    assert "CENTO" in html_lista
+
+    # Verifica que o filtro dinâmico por categoria personalizada funciona na rota GET /estoque
+    resp_filtro = client.get("/estoque?categoria=Fixadores+Especiais")
+    assert resp_filtro.status_code == 200
+    html_filtro = resp_filtro.get_data(as_text=True)
+    assert "MAT-0093" in html_filtro
+    assert "MAT-0092" not in html_filtro

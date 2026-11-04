@@ -170,3 +170,9 @@ def modulo_fiscal_preview():
         )
         return redirect(url_for("main.configuracoes"))
     return render_template_string(FISCAL_PREVIEW_HTML, active_page="faturamento")
+
+
+@main_bp.route("/logout", methods=["GET", "POST"])
+def logout():
+    flash("Sessão encerrada com segurança. Até logo, Rogério Barbosa!", "success")
+    return redirect(url_for("main.home"))

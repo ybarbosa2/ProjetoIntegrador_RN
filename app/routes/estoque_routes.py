@@ -43,10 +43,11 @@ def listar_estoque():
     busca = (request.args.get("q") or "").strip()
     categoria = (request.args.get("categoria") or "Todas").strip()
 
-    if categoria not in ("Todas", *CATEGORIAS_ESTOQUE):
+    if not categoria or categoria in ("Todas", "Todas as categorias", "todas"):
         categoria = "Todas"
 
     service = EstoqueService()
+    categorias_disponiveis = service.listar_categorias_distintas()
     materiais = service.listar_materiais(busca=busca, categoria=categoria)
     indicadores = service.obter_indicadores_estoque()
     ultimas_movimentacoes = service.listar_ultimas_movimentacoes(limite=5)
@@ -57,7 +58,7 @@ def listar_estoque():
         materiais=materiais,
         busca=busca,
         categoria_atual=categoria,
-        categorias=CATEGORIAS_ESTOQUE,
+        categorias=categorias_disponiveis,
         indicadores=indicadores,
         itens_baixo_estoque=indicadores["itens_baixo_estoque"],
         ultimas_movimentacoes=ultimas_movimentacoes,
@@ -68,6 +69,9 @@ def listar_estoque():
 def novo_material():
     service = EstoqueService()
     proximo_codigo = service.gerar_proximo_codigo()
+    categorias_disponiveis = service.listar_categorias_distintas()
+    tipos_disponiveis = service.listar_tipos_distintos()
+    unidades_disponiveis = service.listar_unidades_distintas()
 
     if request.method == "POST":
         dados = request.form.to_dict()
@@ -83,7 +87,9 @@ def novo_material():
                 modo_edicao=False,
                 material=None,
                 proximo_codigo=proximo_codigo,
-                categorias=CATEGORIAS_ESTOQUE,
+                categorias=categorias_disponiveis,
+                tipos_material=tipos_disponiveis,
+                unidades_medida=unidades_disponiveis,
                 dados=dados,
             )
 
@@ -93,7 +99,9 @@ def novo_material():
         modo_edicao=False,
         material=None,
         proximo_codigo=proximo_codigo,
-        categorias=CATEGORIAS_ESTOQUE,
+        categorias=categorias_disponiveis,
+        tipos_material=tipos_disponiveis,
+        unidades_medida=unidades_disponiveis,
         dados={
             "codigo": proximo_codigo,
             "categoria": "Chapas",
@@ -132,6 +140,10 @@ def editar_material(id: int):
     if material is None:
         abort(404)
 
+    categorias_disponiveis = service.listar_categorias_distintas()
+    tipos_disponiveis = service.listar_tipos_distintos()
+    unidades_disponiveis = service.listar_unidades_distintas()
+
     if request.method == "POST":
         dados = request.form.to_dict()
         try:
@@ -146,7 +158,9 @@ def editar_material(id: int):
                 modo_edicao=True,
                 material=material,
                 proximo_codigo=material.codigo,
-                categorias=CATEGORIAS_ESTOQUE,
+                categorias=categorias_disponiveis,
+                tipos_material=tipos_disponiveis,
+                unidades_medida=unidades_disponiveis,
                 dados=dados,
             )
 
@@ -156,7 +170,9 @@ def editar_material(id: int):
         modo_edicao=True,
         material=material,
         proximo_codigo=material.codigo,
-        categorias=CATEGORIAS_ESTOQUE,
+        categorias=categorias_disponiveis,
+        tipos_material=tipos_disponiveis,
+        unidades_medida=unidades_disponiveis,
         dados=_material_para_dict(material),
     )
 

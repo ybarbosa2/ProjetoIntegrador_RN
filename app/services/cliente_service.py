@@ -16,8 +16,13 @@ class ClienteService:
         self,
         busca: Optional[str] = None,
         situacao: Optional[str] = None,
+        ordenar_por_nome: bool = False,
     ) -> List[Cliente]:
-        return self.repository.listar_todos(busca=busca, situacao=situacao)
+        return self.repository.listar_todos(
+            busca=busca,
+            situacao=situacao,
+            ordenar_por_nome=ordenar_por_nome,
+        )
 
     def buscar_por_id(self, cliente_id: int) -> Optional[Cliente]:
         return self.repository.buscar_por_id(cliente_id)
