@@ -15,7 +15,7 @@
     <aside class="w-64 bg-[#181B20] text-gray-400 flex flex-col justify-between shrink-0 select-none">
         <div>
             <!-- Topo (Logo) -->
-            <a href="{{ url_for('main.home') }}" class="p-6 flex items-center gap-3 hover:opacity-95 transition-opacity">
+            <a href="{{ url_for('main.home') }}" class="px-6 pt-6 pb-4 flex items-center gap-3 hover:opacity-95 transition-opacity">
                 <div class="w-10 h-10 rounded-lg border-2 border-[#F97316] flex items-center justify-center text-[#F97316] font-bold text-sm tracking-tight shrink-0">
                     RN
                 </div>
@@ -25,27 +25,42 @@
                 </div>
             </a>
 
+            <!-- Card do Usuário Logado (Abaixo do Logo) -->
+            <div class="mx-4 mt-2 mb-4 p-3 rounded-xl bg-[#22262E] border border-gray-800 flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-[#F97316] text-white text-xs font-bold flex items-center justify-center shrink-0">
+                    RB
+                </div>
+                <div class="min-w-0">
+                    <div class="text-sm font-semibold text-white leading-tight truncate">Rogério Barbosa</div>
+                    <div class="text-[11px] text-gray-400 mt-0.5">Administrador</div>
+                </div>
+            </div>
+
             <!-- Seção de Menu -->
-            <div class="px-6 text-[11px] font-semibold text-gray-500 uppercase tracking-wider mt-4 mb-2">
-                GESTÃO INDUSTRIAL
+            <div class="px-6 text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-2 mb-3">
+                Abas do Sistema
             </div>
 
             <!-- Links de Navegação -->
-            <nav class="px-3 space-y-1">
+            <nav class="space-y-2">
                 <a href="{{ url_for('clientes.listar_clientes') }}"
-                   class="flex items-center gap-3 px-3 py-2.5 text-sm transition-colors {% if active_page == 'clientes' %}bg-[#2C221E] text-white font-medium rounded-lg{% else %}text-gray-400 hover:bg-white/5 hover:text-gray-200 rounded-lg{% endif %}">
-                    <i data-lucide="users" class="w-4 h-4 {% if active_page == 'clientes' %}text-[#F97316]{% else %}text-gray-400{% endif %}"></i>
-                    <span>Clientes</span>
+                   class="mx-3 px-4 py-3 rounded-xl border transition-all duration-150 flex items-center justify-between text-sm font-medium {% if active_page == 'clientes' %}bg-[#2C221E] border-[#F97316]/60 text-white shadow-sm{% else %}bg-[#20242C] border-gray-800/80 text-gray-300 hover:bg-[#282D37] hover:border-gray-700 hover:text-white{% endif %}">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="users" class="w-4 h-4 {% if active_page == 'clientes' %}text-[#F97316]{% else %}text-gray-400{% endif %}"></i>
+                        <span>Clientes</span>
+                    </div>
                 </a>
 
                 <a href="{{ url_for('estoque.listar_estoque') }}"
-                   class="flex items-center gap-3 px-3 py-2.5 text-sm transition-colors {% if active_page == 'estoque' %}bg-[#2C221E] text-white font-medium rounded-lg{% else %}text-gray-400 hover:bg-white/5 hover:text-gray-200 rounded-lg{% endif %}">
-                    <i data-lucide="package" class="w-4 h-4 {% if active_page == 'estoque' %}text-[#F97316]{% else %}text-gray-400{% endif %}"></i>
-                    <span>Estoque</span>
+                   class="mx-3 px-4 py-3 rounded-xl border transition-all duration-150 flex items-center justify-between text-sm font-medium {% if active_page == 'estoque' %}bg-[#2C221E] border-[#F97316]/60 text-white shadow-sm{% else %}bg-[#20242C] border-gray-800/80 text-gray-300 hover:bg-[#282D37] hover:border-gray-700 hover:text-white{% endif %}">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="package" class="w-4 h-4 {% if active_page == 'estoque' %}text-[#F97316]{% else %}text-gray-400{% endif %}"></i>
+                        <span>Estoque</span>
+                    </div>
                 </a>
 
                 <a href="{{ url_for('os.listar_os') }}"
-                   class="flex items-center justify-between px-3 py-2.5 text-sm transition-colors {% if active_page == 'os' %}bg-[#2C221E] text-white font-medium rounded-lg{% else %}text-gray-400 hover:bg-white/5 hover:text-gray-200 rounded-lg{% endif %}">
+                   class="mx-3 px-4 py-3 rounded-xl border transition-all duration-150 flex items-center justify-between text-sm font-medium {% if active_page == 'os' %}bg-[#2C221E] border-[#F97316]/60 text-white shadow-sm{% else %}bg-[#20242C] border-gray-800/80 text-gray-300 hover:bg-[#282D37] hover:border-gray-700 hover:text-white{% endif %}">
                     <div class="flex items-center gap-3">
                         <i data-lucide="file-text" class="w-4 h-4 {% if active_page == 'os' %}text-[#F97316]{% else %}text-gray-400{% endif %}"></i>
                         <span>Ordens de Serviço</span>
@@ -57,7 +72,7 @@
 
                 {% if enable_fiscal_module %}
                 <a href="{{ url_for('main.modulo_fiscal_preview') }}"
-                   class="flex items-center justify-between px-3 py-2.5 text-sm transition-colors {% if active_page == 'faturamento' %}bg-[#2C221E] text-white font-medium rounded-lg{% else %}text-gray-400 hover:bg-white/5 hover:text-gray-200 rounded-lg{% endif %}">
+                   class="mx-3 px-4 py-3 rounded-xl border transition-all duration-150 flex items-center justify-between text-sm font-medium {% if active_page == 'faturamento' %}bg-[#2C221E] border-[#F97316]/60 text-white shadow-sm{% else %}bg-[#20242C] border-gray-800/80 text-gray-300 hover:bg-[#282D37] hover:border-gray-700 hover:text-white{% endif %}">
                     <div class="flex items-center gap-3">
                         <i data-lucide="receipt" class="w-4 h-4 {% if active_page == 'faturamento' %}text-[#F97316]{% else %}text-gray-400{% endif %}"></i>
                         <span>Notas Fiscais</span>
@@ -69,9 +84,11 @@
                 {% endif %}
 
                 <a href="{{ url_for('main.configuracoes') }}"
-                   class="flex items-center gap-3 px-3 py-2.5 text-sm transition-colors {% if active_page == 'configuracoes' %}bg-[#2C221E] text-white font-medium rounded-lg{% else %}text-gray-400 hover:bg-white/5 hover:text-gray-200 rounded-lg{% endif %}">
-                    <i data-lucide="settings" class="w-4 h-4 {% if active_page == 'configuracoes' %}text-[#F97316]{% else %}text-gray-400{% endif %}"></i>
-                    <span>Configurações</span>
+                   class="mx-3 px-4 py-3 rounded-xl border transition-all duration-150 flex items-center justify-between text-sm font-medium {% if active_page == 'configuracoes' %}bg-[#2C221E] border-[#F97316]/60 text-white shadow-sm{% else %}bg-[#20242C] border-gray-800/80 text-gray-300 hover:bg-[#282D37] hover:border-gray-700 hover:text-white{% endif %}">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="settings" class="w-4 h-4 {% if active_page == 'configuracoes' %}text-[#F97316]{% else %}text-gray-400{% endif %}"></i>
+                        <span>Configurações</span>
+                    </div>
                 </a>
             </nav>
         </div>
@@ -81,7 +98,7 @@
             <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
             <div>
                 <div class="text-[10px] text-gray-500 uppercase tracking-wider leading-none">UNIDADE ATIVA</div>
-                <div class="text-xs text-gray-300 font-medium mt-1">Matriz · Sorocaba</div>
+                <div class="text-xs text-gray-300 font-medium mt-1">Matriz · Ribeirão Preto</div>
             </div>
         </div>
     </aside>
@@ -97,33 +114,22 @@
                 {% endblock %}
             </div>
 
-            <div class="flex items-center gap-4">
-                <!-- Barra de Busca Global -->
-                <div class="w-72 bg-[#F8F9FA] border border-gray-200 rounded-lg px-3.5 py-2 text-sm flex items-center gap-2 text-gray-400 focus-within:border-[#F97316] focus-within:ring-1 focus-within:ring-[#F97316]/30 transition-all">
-                    <i data-lucide="search" class="w-4 h-4 shrink-0 text-gray-400"></i>
-                    <input type="text"
-                           placeholder="Buscar no sistema..."
-                           class="bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 w-full text-sm">
-                </div>
-
+            <div class="flex items-center gap-3">
                 <!-- Botão de Notificações -->
                 <button type="button"
                         title="Notificações"
-                        class="w-10 h-10 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 relative hover:bg-gray-50 transition-colors">
+                        class="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 relative hover:bg-gray-50 transition-colors">
                     <i data-lucide="bell" class="w-4 h-4"></i>
-                    <span class="w-2 h-2 rounded-full bg-[#F97316] absolute top-2.5 right-2.5"></span>
+                    <span class="w-2 h-2 rounded-full bg-[#F97316] absolute top-2 right-2"></span>
                 </button>
 
-                <!-- Perfil do Usuário -->
-                <div class="flex items-center gap-3 pl-2">
-                    <div class="w-9 h-9 rounded-full bg-[#181B20] text-white text-xs font-bold flex items-center justify-center shrink-0">
-                        RN
-                    </div>
-                    <div class="leading-tight">
-                        <div class="text-sm font-semibold text-gray-800">Rafael Nogueira</div>
-                        <div class="text-xs text-gray-400">Administrador</div>
-                    </div>
-                </div>
+                <!-- Botão de Log-off ("Sair") -->
+                <a href="{{ url_for('main.logout') }}"
+                   title="Encerrar sessão"
+                   class="px-3.5 py-2 rounded-lg border border-gray-200 bg-white hover:bg-red-50 hover:border-red-200 text-gray-600 hover:text-red-600 text-xs font-semibold flex items-center gap-2 transition">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                    <span>Sair</span>
+                </a>
             </div>
         </header>
 
@@ -158,4 +164,3 @@
     </script>
 </body>
 </html>
-

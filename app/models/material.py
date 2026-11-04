@@ -5,6 +5,11 @@ UNIDADES_EXTENSO = {
     "M": "Metro (M)",
     "BR": "Barra (BR)",
     "KG": "Quilograma (KG)",
+    "L": "Litro (L)",
+    "CX": "Caixa (CX)",
+    "KIT": "Kit (KIT)",
+    "PÇ": "Peça (PÇ)",
+    "PC": "Peça (PC)",
 }
 
 UNIDADES_ABREVIADAS = {
@@ -12,6 +17,11 @@ UNIDADES_ABREVIADAS = {
     "M": "m",
     "BR": "br.",
     "KG": "kg",
+    "L": "l",
+    "CX": "cx.",
+    "KIT": "kit",
+    "PÇ": "pç.",
+    "PC": "pç.",
 }
 
 
@@ -29,9 +39,9 @@ class Material(db.Model):
     codigo = db.Column(db.String(20), unique=True, nullable=False)
     descricao = db.Column(db.String(150), nullable=False)
     subtitulo = db.Column(db.String(150), default="Aço carbono laminado a quente")
-    categoria = db.Column(db.String(50), nullable=False)
-    tipo_material = db.Column(db.String(80), default="Aço carbono")
-    unidade = db.Column(db.String(10), nullable=False)
+    categoria = db.Column(db.String(80), nullable=False)
+    tipo_material = db.Column(db.String(100), default="Aço carbono")
+    unidade = db.Column(db.String(30), nullable=False)
     disponivel = db.Column(db.Float, nullable=False, default=0.0)
     minimo = db.Column(db.Float, nullable=False, default=0.0)
     custo_unitario = db.Column(db.Float, nullable=False, default=0.0)

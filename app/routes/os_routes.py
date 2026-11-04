@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict, List
 
 from flask import (
@@ -20,6 +20,15 @@ os_bp = Blueprint("os", __name__)
 
 STATUS_OPCOES = ["Em andamento", "Aguardando material", "Aberta", "Concluída"]
 
+PERIODO_OPCOES = [
+    ("sempre", "Todo o período (Sempre)"),
+    ("7d", "Últimos 7 dias"),
+    ("15d", "Últimos 15 dias"),
+    ("30d", "Últimos 30 dias"),
+    ("90d", "Últimos 90 dias"),
+    ("ano", "Este ano"),
+]
+
 
 def _os_para_dict(ordem: OrdemServico) -> Dict[str, Any]:
     return {
@@ -36,6 +45,22 @@ def _os_para_dict(ordem: OrdemServico) -> Dict[str, Any]:
         "especificacoes_tecnicas": ordem.especificacoes_tecnicas or "",
         "valor_mao_de_obra": f"{float(ordem.valor_mao_de_obra or 0.0):.2f}".replace(".", ","),
     }
+
+
+def _itens_os_para_form(ordem: OrdemServico) -> List[Dict[str, Any]]:
+    itens: List[Dict[str, Any]] = []
+    for it in ordem.itens or []:
+        qtd_num = float(it.quantidade or 0.0)
+        qtd_str = str(int(qtd_num)) if qtd_num.is_integer() else f"{qtd_num:.2f}".replace(".", ",")
+        itens.append(
+            {
+                "material_id": str(it.material_id),
+                "quantidade": qtd_str,
+                "valor_unitario": float(it.valor_unitario or 0.0),
+                "subtotal": float(it.valor_total or 0.0),
+            }
+        )
+    return itens
 
 
 def _extrair_materiais_formulario() -> List[Dict[str, Any]]:
@@ -58,6 +83,7 @@ def listar_os():
     busca = (request.args.get("q") or "").strip()
     status = (request.args.get("status") or "Todos").strip()
     cliente_id = (request.args.get("cliente_id") or "Todos").strip()
+    periodo = (request.args.get("periodo") or "sempre").strip()
 
     if status not in ("Todos", *STATUS_OPCOES):
         status = "Todos"
@@ -65,8 +91,13 @@ def listar_os():
     os_service = OsService()
     cliente_service = ClienteService()
 
-    ordens = os_service.listar_ordens(busca=busca, status=status, cliente_id=cliente_id)
-    clientes = cliente_service.listar_clientes()
+    ordens = os_service.listar_ordens(
+        busca=busca,
+        status=status,
+        cliente_id=cliente_id,
+        periodo=periodo,
+    )
+    clientes = cliente_service.listar_clientes(ordenar_por_nome=True)
     resumo = os_service.obter_resumo()
 
     return render_template(
@@ -75,9 +106,11 @@ def listar_os():
         ordens=ordens,
         clientes=clientes,
         status_opcoes=STATUS_OPCOES,
+        periodo_opcoes=PERIODO_OPCOES,
         busca=busca,
         status_atual=status,
         cliente_id_atual=cliente_id,
+        periodo_atual=periodo,
         resumo=resumo,
         total_ordens=resumo["total"],
     )
@@ -90,7 +123,7 @@ def nova_os():
     estoque_service = EstoqueService()
 
     proximo_numero = os_service.gerar_proximo_numero()
-    clientes = cliente_service.listar_clientes()
+    clientes = cliente_service.listar_clientes(ordenar_por_nome=True)
     materiais = estoque_service.listar_materiais()
 
     if request.method == "POST":
@@ -131,7 +164,7 @@ def nova_os():
             "numero": proximo_numero,
             "cliente_id": cliente_pre_selecionado,
             "data_abertura": hoje.strftime("%d/%m/%Y"),
-            "prazo_entrega": (hoje + timedelta(days=15)).strftime("%d/%m/%Y"),
+            "prazo_entrega": "",
             "status": "Aberta",
             "tipo_servico": "Fabricação de estrutura metálica",
             "quantidade_servico": "1 conjunto",
@@ -172,13 +205,19 @@ def editar_os(id: int):
     if ordem is None:
         abort(404)
 
-    clientes = cliente_service.listar_clientes()
+    clientes = cliente_service.listar_clientes(ordenar_por_nome=True)
     materiais = estoque_service.listar_materiais()
 
     if request.method == "POST":
         dados = request.form.to_dict()
+        tem_secao_materiais = (
+            "sincronizar_materiais" in request.form
+            or "material_id[]" in request.form
+            or "material_id" in request.form
+        )
+        lista_materiais = _extrair_materiais_formulario() if tem_secao_materiais else None
         try:
-            os_service.atualizar_status_ou_dados(id, dados)
+            os_service.atualizar_status_ou_dados(id, dados, lista_materiais=lista_materiais)
             flash(f"Ordem de Serviço #{ordem.numero} atualizada com sucesso!", "success")
             return redirect(url_for("os.detalhe_os", id=id))
         except ValueError as err:
@@ -193,7 +232,7 @@ def editar_os(id: int):
                 materiais=materiais,
                 status_opcoes=STATUS_OPCOES,
                 dados=dados,
-                itens_form=[],
+                itens_form=lista_materiais if lista_materiais is not None else _itens_os_para_form(ordem),
             )
 
     return render_template(
@@ -206,5 +245,5 @@ def editar_os(id: int):
         materiais=materiais,
         status_opcoes=STATUS_OPCOES,
         dados=_os_para_dict(ordem),
-        itens_form=[],
+        itens_form=_itens_os_para_form(ordem),
     )

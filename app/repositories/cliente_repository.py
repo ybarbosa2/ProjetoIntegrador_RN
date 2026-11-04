@@ -12,6 +12,7 @@ class ClienteRepository:
     def listar_todos(
         busca: Optional[str] = None,
         situacao: Optional[str] = None,
+        ordenar_por_nome: bool = False,
     ) -> List[Cliente]:
         query = Cliente.query
 
@@ -45,6 +46,8 @@ class ClienteRepository:
                 condicoes.append(coluna_limpa.ilike(f"%{digitos}%"))
             query = query.filter(db.or_(*condicoes))
 
+        if ordenar_por_nome:
+            return query.order_by(Cliente.razao_social.asc()).all()
         return query.order_by(Cliente.codigo.desc()).all()
 
     @staticmethod

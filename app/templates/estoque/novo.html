@@ -42,7 +42,7 @@
                 </div>
                 <div>
                     <h3 class="text-sm font-bold text-gray-900">Identificação</h3>
-                    <p class="text-xs text-gray-500">Dados principais do material</p>
+                    <p class="text-xs text-gray-500">Dados principais do material (selecione opções existentes ou digite valores personalizados)</p>
                 </div>
             </div>
 
@@ -77,50 +77,92 @@
                     </div>
                 </div>
 
-                <!-- Linha 2 -->
+                <!-- Linha 2: CATEGORIA, TIPO DE MATERIAL e UNIDADE DE MEDIDA (100% Customizáveis) -->
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <!-- CATEGORIA -->
                     <div class="md:col-span-4">
-                        <label for="categoria"
-                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                            CATEGORIA
-                        </label>
-                        <select id="categoria"
-                                name="categoria"
-                                class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none transition-colors">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label for="categoria"
+                                   class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                                CATEGORIA
+                            </label>
+                            <button type="button"
+                                    onclick="habilitarCampoPersonalizado('categoria', 'Digite a nova categoria...')"
+                                    class="text-[11px] font-semibold text-[#F97316] hover:underline">
+                                + Nova categoria...
+                            </button>
+                        </div>
+                        <input type="text"
+                               id="categoria"
+                               name="categoria"
+                               list="lista_categorias_estoque"
+                               value="{{ dados.get('categoria', 'Chapas') }}"
+                               placeholder="Selecione ou digite uma categoria..."
+                               required
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                        <datalist id="lista_categorias_estoque">
                             {% for cat in categorias %}
-                            <option value="{{ cat }}" {% if dados.get('categoria', 'Chapas') == cat %}selected{% endif %}>{{ cat }}</option>
+                            <option value="{{ cat }}"></option>
                             {% endfor %}
-                        </select>
+                        </datalist>
                     </div>
 
+                    <!-- TIPO DE MATERIAL -->
                     <div class="md:col-span-4">
-                        <label for="tipo_material"
-                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                            TIPO DE MATERIAL
-                        </label>
-                        <select id="tipo_material"
-                                name="tipo_material"
-                                class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none transition-colors">
-                            {% set tipos_opcoes = ['Aço carbono', 'Aço estrutural', 'Insumo de solda', 'Aço galvanizado', 'Aço inox'] %}
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label for="tipo_material"
+                                   class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                                TIPO DE MATERIAL
+                            </label>
+                            <button type="button"
+                                    onclick="habilitarCampoPersonalizado('tipo_material', 'Digite o tipo de material...')"
+                                    class="text-[11px] font-semibold text-[#F97316] hover:underline">
+                                + Novo tipo...
+                            </button>
+                        </div>
+                        <input type="text"
+                               id="tipo_material"
+                               name="tipo_material"
+                               list="lista_tipos_material"
+                               value="{{ dados.get('tipo_material', 'Aço carbono') }}"
+                               placeholder="Selecione ou digite o tipo..."
+                               required
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                        <datalist id="lista_tipos_material">
+                            {% set tipos_opcoes = tipos_material if tipos_material is defined else ['Aço carbono', 'Aço estrutural', 'Insumo de solda', 'Aço galvanizado', 'Aço inox'] %}
                             {% for t in tipos_opcoes %}
-                            <option value="{{ t }}" {% if dados.get('tipo_material', 'Aço carbono') == t %}selected{% endif %}>{{ t }}</option>
+                            <option value="{{ t }}"></option>
                             {% endfor %}
-                        </select>
+                        </datalist>
                     </div>
 
+                    <!-- UNIDADE DE MEDIDA -->
                     <div class="md:col-span-4">
-                        <label for="unidade"
-                               class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                            UNIDADE DE MEDIDA
-                        </label>
-                        <select id="unidade"
-                                name="unidade"
-                                class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none transition-colors">
-                            <option value="UN" {% if dados.get('unidade', 'UN') == 'UN' %}selected{% endif %}>Unidade</option>
-                            <option value="M" {% if dados.get('unidade') == 'M' %}selected{% endif %}>Metro (M)</option>
-                            <option value="BR" {% if dados.get('unidade') == 'BR' %}selected{% endif %}>Barra (BR)</option>
-                            <option value="KG" {% if dados.get('unidade') == 'KG' %}selected{% endif %}>Quilograma (KG)</option>
-                        </select>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label for="unidade"
+                                   class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                                UNIDADE DE MEDIDA
+                            </label>
+                            <button type="button"
+                                    onclick="habilitarCampoPersonalizado('unidade', 'Ex.: UN, M, BR, KG, L, CX, KIT, PÇ...')"
+                                    class="text-[11px] font-semibold text-[#F97316] hover:underline">
+                                + Nova unidade...
+                            </button>
+                        </div>
+                        <input type="text"
+                               id="unidade"
+                               name="unidade"
+                               list="lista_unidades_medida"
+                               value="{{ dados.get('unidade', 'UN') }}"
+                               placeholder="Ex.: UN, M, BR, KG, L, CX, KIT, PÇ..."
+                               required
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors uppercase">
+                        <datalist id="lista_unidades_medida">
+                            {% set unidades_opcoes = unidades_medida if unidades_medida is defined else ['UN', 'M', 'BR', 'KG', 'L', 'CX', 'KIT', 'PÇ'] %}
+                            {% for un in unidades_opcoes %}
+                            <option value="{{ un }}"></option>
+                            {% endfor %}
+                        </datalist>
                     </div>
                 </div>
             </div>
@@ -301,4 +343,14 @@
         </div>
     </form>
 </div>
+
+<script>
+    function habilitarCampoPersonalizado(idCampo, placeholderTexto) {
+        const input = document.getElementById(idCampo);
+        if (!input) return;
+        input.value = '';
+        input.placeholder = placeholderTexto;
+        input.focus();
+    }
+</script>
 {% endblock %}

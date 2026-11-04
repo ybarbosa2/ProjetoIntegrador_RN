@@ -92,7 +92,7 @@
 
         <div class="md:pl-6">
             <span class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider">PRAZO DE ENTREGA</span>
-            <span class="block font-bold text-gray-900 text-sm mt-1">{{ os.prazo_entrega }}</span>
+            <span class="block font-bold text-gray-900 text-sm mt-1">{{ os.prazo_entrega or 'A definir' }}</span>
         </div>
 
         <div class="md:pl-6">
@@ -288,7 +288,7 @@
             <div class="p-3.5 rounded-xl border {% if nivel_etapa == 4 %}border-emerald-200 bg-emerald-50/50{% else %}border-gray-100 bg-gray-50{% endif %}">
                 <div class="text-[10px] font-bold uppercase tracking-wider {% if nivel_etapa == 4 %}text-emerald-600{% else %}text-gray-400{% endif %}">Etapa 04</div>
                 <div class="text-xs font-bold text-gray-900 mt-1">Entrega &amp; Conclusão</div>
-                <div class="text-[11px] text-gray-500 mt-0.5">Prazo: {{ os.prazo_entrega }}</div>
+                <div class="text-[11px] text-gray-500 mt-0.5">Prazo: {{ os.prazo_entrega or 'A definir' }}</div>
             </div>
         </div>
     </div>
@@ -329,7 +329,7 @@
                     </div>
                     <div>
                         <h2 class="text-lg font-bold text-gray-900">R.N. SOLUÇÕES INDUSTRIAIS</h2>
-                        <p class="text-xs text-gray-500">Metalurgia, Caldeiraria &amp; Manutenção Industrial · Matriz Sorocaba/SP</p>
+                        <p class="text-xs text-gray-500">Metalurgia, Caldeiraria &amp; Manutenção Industrial · Matriz Ribeirão Preto/SP</p>
                     </div>
                 </div>
                 <div class="sm:text-right">

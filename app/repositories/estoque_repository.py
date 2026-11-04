@@ -32,7 +32,9 @@ class EstoqueRepository:
         query = Material.query
 
         if categoria and categoria not in ("Todas", "Todas as categorias", "todas", ""):
-            query = query.filter(Material.categoria == categoria)
+            query = query.filter(
+                db.func.lower(Material.categoria) == categoria.strip().lower()
+            )
 
         if busca and busca.strip():
             termo = f"%{busca.strip()}%"
@@ -113,6 +115,57 @@ class EstoqueRepository:
     @staticmethod
     def contar_categorias_distintas() -> int:
         return db.session.query(db.func.count(db.func.distinct(Material.categoria))).scalar() or 0
+
+    @staticmethod
+    def listar_categorias_distintas() -> List[str]:
+        padroes = ["Chapas", "Tubos", "Perfis", "Consumíveis", "Barras"]
+        rows = (
+            db.session.query(db.func.distinct(Material.categoria))
+            .filter(Material.categoria.isnot(None))
+            .all()
+        )
+        do_banco = [r[0].strip() for r in rows if r[0] and r[0].strip()]
+        resultado: List[str] = []
+        for cat in padroes + sorted(do_banco, key=lambda c: c.lower()):
+            if cat and not any(cat.lower() == existente.lower() for existente in resultado):
+                resultado.append(cat)
+        return resultado
+
+    @staticmethod
+    def listar_tipos_distintos() -> List[str]:
+        padroes = [
+            "Aço carbono",
+            "Aço estrutural",
+            "Insumo de solda",
+            "Aço galvanizado",
+            "Aço inox",
+        ]
+        rows = (
+            db.session.query(db.func.distinct(Material.tipo_material))
+            .filter(Material.tipo_material.isnot(None))
+            .all()
+        )
+        do_banco = [r[0].strip() for r in rows if r[0] and r[0].strip()]
+        resultado: List[str] = []
+        for tipo in padroes + sorted(do_banco, key=lambda t: t.lower()):
+            if tipo and not any(tipo.lower() == existente.lower() for existente in resultado):
+                resultado.append(tipo)
+        return resultado
+
+    @staticmethod
+    def listar_unidades_distintas() -> List[str]:
+        padroes = ["UN", "M", "BR", "KG", "L", "CX", "KIT", "PÇ"]
+        rows = (
+            db.session.query(db.func.distinct(Material.unidade))
+            .filter(Material.unidade.isnot(None))
+            .all()
+        )
+        do_banco = [r[0].strip().upper() for r in rows if r[0] and r[0].strip()]
+        resultado: List[str] = []
+        for un in padroes + sorted(do_banco):
+            if un and un not in resultado:
+                resultado.append(un)
+        return resultado
 
     @staticmethod
     def calcular_valor_total_estoque() -> float:

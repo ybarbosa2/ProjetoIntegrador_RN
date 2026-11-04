@@ -360,3 +360,80 @@ def test_validacoes_unitarias_os_service(app, os_service):
         assert atualizada.cliente_id == cliente_nova_era.id
         assert atualizada.titulo_resumo == "Tremonha industrial reforçada"
         assert atualizada.valor_mao_de_obra == 2100.00
+
+
+def test_criar_os_com_prazo_entrega_vazio_opcional(app, client, os_service):
+    """ETAPA 6 (PASSO 5.2 / PASSO 7): Valida criação de O.S. com prazo_entrega vazio (não obrigatório)."""
+    with app.app_context():
+        cliente = Cliente.query.filter_by(codigo="CLI-0248").first()
+        nova_os = os_service.criar_ordem_servico(
+            {
+                "cliente_id": cliente.id,
+                "prazo_entrega": "",
+                "tipo_servico": "Manutenção industrial",
+                "descricao_detalhada": "Manutenção corretiva sem prazo pré-fixado.",
+                "valor_mao_de_obra": "1800,00",
+            }
+        )
+        assert nova_os.id is not None
+        assert nova_os.prazo_entrega == ""
+        os_id = nova_os.id
+
+    resp_detalhe = client.get(f"/os/{os_id}")
+    assert resp_detalhe.status_code == 200
+    assert "A definir" in resp_detalhe.get_data(as_text=True)
+
+
+def test_edicao_os_completa_com_sincronizacao_inteligente_estoque(app, client):
+    """ETAPA 6 (PASSO 5.3 / PASSO 7): Edita descrição, mão de obra, adiciona novo material e remove material existente."""
+    with app.app_context():
+        # OS-1048 possui inicialmente:
+        # - MAT-0092 (6 un. a R$ 284,90; saldo atual no estoque = 8.0)
+        # - MAT-0088 (12 br. a R$ 86,50; saldo atual no estoque = 38.0)
+        # E MAT-0090 possui saldo atual no estoque = 46.0 e custo_unitario = R$ 110,00
+        os_1048 = OrdemServico.query.filter_by(numero="OS-1048").first()
+        mat_chapa = Material.query.filter_by(codigo="MAT-0092").first()
+        mat_barra = Material.query.filter_by(codigo="MAT-0088").first()
+        mat_cantoneira = Material.query.filter_by(codigo="MAT-0090").first()
+
+        os_id = os_1048.id
+        chapa_id = mat_chapa.id
+        barra_id = mat_barra.id
+        cantoneira_id = mat_cantoneira.id
+
+    # Na edição da OS-1048:
+    # 1. Mantém MAT-0092 aumentando de 6 para 8 un. (baixa +2 do estoque -> saldo de MAT-0092 cai de 8 para 6)
+    # 2. Remove MAT-0088 (estorna 12 br. ao estoque -> saldo de MAT-0088 sobe de 38 para 50)
+    # 3. Adiciona MAT-0090 com 4 br. (baixa 4 do estoque -> saldo de MAT-0090 cai de 46 para 42)
+    # 4. Altera descrição detalhada e valor da mão de obra para R$ 9.000,00
+    resp_edit = client.post(
+        f"/os/{os_id}/editar",
+        data={
+            "sincronizar_materiais": "1",
+            "status": "Em andamento",
+            "tipo_servico": "Fabricação de estrutura metálica",
+            "titulo_resumo": "Estrutura metálica galpão principal",
+            "descricao_detalhada": "Fabricação, reforço de tesouras e montagem completa do galpão.",
+            "especificacoes_tecnicas": "Solda MIG certificada e pintura epóxi.",
+            "valor_mao_de_obra": "9000,00",
+            "material_id[]": [str(chapa_id), str(cantoneira_id)],
+            "material_quantidade[]": ["8", "4"],
+        },
+        follow_redirects=True,
+    )
+    assert resp_edit.status_code == 200
+    html = resp_edit.get_data(as_text=True)
+    assert "Fabricação, reforço de tesouras e montagem completa do galpão." in html
+    assert "R$ 9.000,00" in html
+
+    with app.app_context():
+        os_atualizada = db.session.get(OrdemServico, os_id)
+        # Materiais: (8 * 284,90 = 2.279,20) + (4 * 110,00 = 440,00) = 2.719,20
+        assert round(os_atualizada.valor_materiais, 2) == 2719.20
+        assert round(os_atualizada.valor_mao_de_obra, 2) == 9000.00
+        assert round(os_atualizada.valor_total, 2) == 11719.20
+
+        # Verifica saldos atualizados no estoque
+        assert db.session.get(Material, chapa_id).disponivel == 6.0  # 8 - 2
+        assert db.session.get(Material, barra_id).disponivel == 50.0  # 38 + 12 (estornado)
+        assert db.session.get(Material, cantoneira_id).disponivel == 42.0  # 46 - 4 (baixado)
