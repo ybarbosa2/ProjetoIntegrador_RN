@@ -68,6 +68,15 @@ class EstoqueService:
     def listar_movimentacoes_por_material(self, material_id: int) -> List[MovimentacaoEstoque]:
         return self.repositorio.listar_movimentacoes_por_material(material_id)
 
+    def listar_categorias_distintas(self) -> List[str]:
+        return self.repositorio.listar_categorias_distintas()
+
+    def listar_tipos_distintos(self) -> List[str]:
+        return self.repositorio.listar_tipos_distintos()
+
+    def listar_unidades_distintas(self) -> List[str]:
+        return self.repositorio.listar_unidades_distintas()
+
     def registrar_entrada(
         self,
         material_id_ou_obj: int | Material,
@@ -130,9 +139,20 @@ class EstoqueService:
         if self.repositorio.buscar_por_codigo(codigo) is not None:
             raise ValueError(f"O código {codigo} já está cadastrado no estoque.")
 
-        categoria = (dados.get("categoria") or "Chapas").strip()
-        tipo_material = (dados.get("tipo_material") or "Aço carbono").strip()
-        unidade = (dados.get("unidade") or "UN").strip().upper()
+        cat_raw = (dados.get("categoria_customizada") or "").strip() or (
+            dados.get("categoria") or ""
+        ).strip()
+        categoria = cat_raw if cat_raw and cat_raw != "__nova__" else "Chapas"
+
+        tipo_raw = (dados.get("tipo_material_customizado") or "").strip() or (
+            dados.get("tipo_material") or ""
+        ).strip()
+        tipo_material = tipo_raw if tipo_raw and tipo_raw != "__novo__" else "Aço carbono"
+
+        un_raw = (dados.get("unidade_customizada") or "").strip() or (
+            dados.get("unidade") or ""
+        ).strip()
+        unidade = (un_raw if un_raw and un_raw != "__nova__" else "UN").upper()
 
         quantidade_inicial = _converter_numero(
             dados.get("quantidade_inicial", dados.get("disponivel", 0)),
@@ -166,7 +186,7 @@ class EstoqueService:
             self.registrar_entrada(
                 material,
                 quantidade=quantidade_inicial,
-                responsavel="Rafael Nogueira",
+                responsavel="Rogério Barbosa",
                 descricao_movimentacao="Entrada inicial de cadastro",
             )
 
@@ -188,9 +208,26 @@ class EstoqueService:
 
         material.codigo = codigo_informado
         material.descricao = descricao
-        material.categoria = (dados.get("categoria") or material.categoria).strip()
-        material.tipo_material = (dados.get("tipo_material") or material.tipo_material).strip()
-        material.unidade = (dados.get("unidade") or material.unidade).strip().upper()
+        cat_raw = (dados.get("categoria_customizada") or "").strip() or (
+            dados.get("categoria") or ""
+        ).strip()
+        material.categoria = (
+            cat_raw if cat_raw and cat_raw != "__nova__" else material.categoria
+        ).strip()
+
+        tipo_raw = (dados.get("tipo_material_customizado") or "").strip() or (
+            dados.get("tipo_material") or ""
+        ).strip()
+        material.tipo_material = (
+            tipo_raw if tipo_raw and tipo_raw != "__novo__" else material.tipo_material
+        ).strip()
+
+        un_raw = (dados.get("unidade_customizada") or "").strip() or (
+            dados.get("unidade") or ""
+        ).strip()
+        material.unidade = (
+            un_raw if un_raw and un_raw != "__nova__" else material.unidade
+        ).strip().upper()
         if "subtitulo" in dados and (dados.get("subtitulo") or "").strip():
             material.subtitulo = dados["subtitulo"].strip()
         if "disponivel" in dados and str(dados.get("disponivel", "")).strip() != "":

@@ -1,9 +1,20 @@
+from datetime import date, datetime, timedelta
 import re
 from typing import List, Optional
 
 from app.database import db
 from app.models.cliente import Cliente
 from app.models.ordem_servico import OrdemServico
+
+
+def _converter_data_br(texto: Optional[str]) -> Optional[date]:
+    """Converte string DD/MM/YYYY em objeto date com segurança."""
+    if not texto or not texto.strip():
+        return None
+    try:
+        return datetime.strptime(texto.strip(), "%d/%m/%Y").date()
+    except ValueError:
+        return None
 
 
 class OsRepository:
@@ -14,6 +25,7 @@ class OsRepository:
         busca: Optional[str] = None,
         status: Optional[str] = None,
         cliente_id: Optional[int | str] = None,
+        periodo: Optional[str] = None,
     ) -> List[OrdemServico]:
         query = OrdemServico.query.join(Cliente, OrdemServico.cliente_id == Cliente.id)
 
@@ -41,7 +53,33 @@ class OsRepository:
                 )
             )
 
-        return query.order_by(OrdemServico.numero.desc(), OrdemServico.id.desc()).all()
+        ordens = query.order_by(OrdemServico.numero.desc(), OrdemServico.id.desc()).all()
+
+        periodo_norm = (periodo or "sempre").strip().lower()
+        if periodo_norm in ("", "sempre", "todos", "todo o período"):
+            return ordens
+
+        hoje = datetime.now().date()
+        dias_map = {"7d": 7, "15d": 15, "30d": 30, "90d": 90}
+
+        if periodo_norm in dias_map:
+            data_limite = hoje - timedelta(days=dias_map[periodo_norm])
+            return [
+                os_item
+                for os_item in ordens
+                if (dt := _converter_data_br(os_item.data_abertura)) is not None
+                and dt >= data_limite
+            ]
+
+        if periodo_norm == "ano":
+            return [
+                os_item
+                for os_item in ordens
+                if (dt := _converter_data_br(os_item.data_abertura)) is not None
+                and dt.year == hoje.year
+            ]
+
+        return ordens
 
     @staticmethod
     def buscar_por_id(os_id: int) -> Optional[OrdemServico]:

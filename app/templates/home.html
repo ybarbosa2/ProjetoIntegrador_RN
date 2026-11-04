@@ -10,71 +10,16 @@
 {% block content %}
 <div class="max-w-7xl mx-auto space-y-8">
     <!-- Saudação Executiva -->
-    <section class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <section class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
         <div>
             <span class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[#F97316] bg-orange-50 px-2.5 py-1 rounded-md">
-                <i data-lucide="factory" class="w-3.5 h-3.5"></i>
-                Metalurgia &amp; Manutenção Industrial
+                <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
+                Gestão Empresarial R.N.
             </span>
-            <h2 class="text-2xl font-bold text-gray-900 mt-3">Olá, Rafael Nogueira</h2>
+            <h2 class="text-2xl font-bold text-gray-900 mt-3">Olá, Rogério Barbosa</h2>
             <p class="text-sm text-gray-500 mt-1">
-                Acompanhe abaixo o resumo operacional da oficina em Sorocaba/SP e selecione um módulo para iniciar.
+                Selecione abaixo um dos módulos principais da Matriz · Ribeirão Preto para gerenciar as operações.
             </p>
-        </div>
-        <div class="flex items-center gap-3 bg-[#F8F9FA] border border-gray-200 rounded-lg px-4 py-3 shrink-0">
-            <div class="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <i data-lucide="activity" class="w-4 h-4"></i>
-            </div>
-            <div>
-                <div class="text-xs text-gray-500">Status da Oficina</div>
-                <div class="text-sm font-semibold text-gray-900">Operação Normal · Turno Diurno</div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Resumo Rápido da Oficina -->
-    <section class="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <!-- KPI Clientes Ativos -->
-        <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex items-center justify-between">
-            <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Clientes Ativos</p>
-                <p class="text-2xl font-bold text-gray-900 mt-1">{{ resumo_clientes.ativos }}</p>
-                <p class="text-xs text-gray-400 mt-1">De {{ resumo_clientes.total }} clientes na carteira</p>
-            </div>
-            <div class="w-11 h-11 rounded-xl bg-orange-50 text-[#F97316] flex items-center justify-center">
-                <i data-lucide="user-check" class="w-5 h-5"></i>
-            </div>
-        </div>
-
-        <!-- KPI Materiais e Estoque Baixo -->
-        <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex items-center justify-between">
-            <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Materiais em Estoque</p>
-                <div class="flex items-baseline gap-2.5 mt-1">
-                    <p class="text-2xl font-bold text-gray-900">{{ resumo_estoque.total }}</p>
-                    {% if resumo_estoque.estoque_baixo > 0 %}
-                    <span class="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                        {{ resumo_estoque.estoque_baixo }} com estoque baixo
-                    </span>
-                    {% endif %}
-                </div>
-                <p class="text-xs text-gray-400 mt-1">Monitoramento de saldo mínimo ativo</p>
-            </div>
-            <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                <i data-lucide="alert-triangle" class="w-5 h-5"></i>
-            </div>
-        </div>
-
-        <!-- KPI Ordens de Serviço em Andamento -->
-        <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex items-center justify-between">
-            <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">O.S. em Andamento</p>
-                <p class="text-2xl font-bold text-gray-900 mt-1">{{ resumo_os.em_andamento }}</p>
-                <p class="text-xs text-gray-400 mt-1">{{ resumo_os.ativas }} ordens ativas na produção</p>
-            </div>
-            <div class="w-11 h-11 rounded-xl bg-orange-50 text-[#F97316] flex items-center justify-center">
-                <i data-lucide="wrench" class="w-5 h-5"></i>
-            </div>
         </div>
     </section>
 
@@ -89,13 +34,8 @@
             <!-- Card 1: Módulo de Clientes -->
             <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:border-[#F97316]/60 hover:shadow-md transition-all flex flex-col justify-between">
                 <div>
-                    <div class="flex items-center justify-between">
-                        <div class="w-12 h-12 rounded-xl bg-orange-50 text-[#F97316] flex items-center justify-center">
-                            <i data-lucide="users" class="w-6 h-6"></i>
-                        </div>
-                        <span class="text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
-                            {{ resumo_clientes.total }} cadastrados
-                        </span>
+                    <div class="w-12 h-12 rounded-xl bg-orange-50 text-[#F97316] flex items-center justify-center">
+                        <i data-lucide="users" class="w-6 h-6"></i>
                     </div>
 
                     <h4 class="text-lg font-bold text-gray-900 mt-5">Módulo de Clientes</h4>
@@ -115,13 +55,8 @@
             <!-- Card 2: Módulo de Estoque -->
             <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:border-[#F97316]/60 hover:shadow-md transition-all flex flex-col justify-between">
                 <div>
-                    <div class="flex items-center justify-between">
-                        <div class="w-12 h-12 rounded-xl bg-orange-50 text-[#F97316] flex items-center justify-center">
-                            <i data-lucide="package" class="w-6 h-6"></i>
-                        </div>
-                        <span class="text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
-                            {{ resumo_estoque.total }} itens
-                        </span>
+                    <div class="w-12 h-12 rounded-xl bg-orange-50 text-[#F97316] flex items-center justify-center">
+                        <i data-lucide="package" class="w-6 h-6"></i>
                     </div>
 
                     <h4 class="text-lg font-bold text-gray-900 mt-5">Módulo de Estoque</h4>
@@ -141,13 +76,8 @@
             <!-- Card 3: Módulo de Ordens de Serviço -->
             <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:border-[#F97316]/60 hover:shadow-md transition-all flex flex-col justify-between">
                 <div>
-                    <div class="flex items-center justify-between">
-                        <div class="w-12 h-12 rounded-xl bg-orange-50 text-[#F97316] flex items-center justify-center">
-                            <i data-lucide="clipboard-list" class="w-6 h-6"></i>
-                        </div>
-                        <span class="text-xs font-semibold text-orange-700 bg-orange-50 px-3 py-1 rounded-full">
-                            {{ resumo_os.total }} O.S. registradas
-                        </span>
+                    <div class="w-12 h-12 rounded-xl bg-orange-50 text-[#F97316] flex items-center justify-center">
+                        <i data-lucide="clipboard-list" class="w-6 h-6"></i>
                     </div>
 
                     <h4 class="text-lg font-bold text-gray-900 mt-5">Módulo de Ordens de Serviço</h4>
@@ -167,4 +97,3 @@
     </section>
 </div>
 {% endblock %}
-

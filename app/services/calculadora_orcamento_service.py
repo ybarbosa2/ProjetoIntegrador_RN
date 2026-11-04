@@ -86,7 +86,7 @@ class CalculadoraOrcamentoService:
             "numero_os": ordem_servico.numero,
             "os_id": ordem_servico.id,
             "data_emissao": ordem_servico.data_abertura,
-            "prazo_entrega": ordem_servico.prazo_entrega,
+            "prazo_entrega": (ordem_servico.prazo_entrega or "").strip() or "A definir",
             "status_os": ordem_servico.status,
             "cliente": dados_cliente,
             "servico": {

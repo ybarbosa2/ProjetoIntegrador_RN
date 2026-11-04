@@ -24,7 +24,7 @@
                 {{ ('Editar ordem de serviço #' ~ ordem.numero) if modo_edicao and ordem else 'Nova ordem de serviço' }}
             </h2>
             <p class="text-xs text-gray-500 mt-0.5">
-                {{ 'Atualize o andamento, prazos ou especificações técnicas da ordem.' if modo_edicao else 'Registre todas as informações para iniciar a produção.' }}
+                {{ 'Atualize a descrição do serviço, mão de obra, materiais utilizados e prazos da ordem.' if modo_edicao else 'Registre todas as informações para iniciar a produção.' }}
             </p>
         </div>
     </div>
@@ -33,6 +33,7 @@
     <form method="POST"
           action="{{ url_for('os.editar_os', id=ordem.id) if modo_edicao and ordem else url_for('os.nova_os') }}"
           class="space-y-6 mt-6">
+        <input type="hidden" name="sincronizar_materiais" value="1">
 
         <!-- Card 01 - Identificação da OS -->
         <section class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
@@ -77,13 +78,13 @@
                     <div>
                         <label for="prazo_entrega"
                                class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                            PRAZO DE ENTREGA
+                            PRAZO DE ENTREGA <span class="text-gray-400 font-normal lowercase">(opcional)</span>
                         </label>
                         <input type="text"
                                id="prazo_entrega"
                                name="prazo_entrega"
-                               value="{{ dados.get('prazo_entrega', '') }}"
-                               placeholder="DD/MM/AAAA"
+                               value="{{ dados.get('prazo_entrega', '') or '' }}"
+                               placeholder="DD/MM/AAAA (opcional)"
                                class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none transition-colors">
                     </div>
                 </div>
@@ -115,7 +116,7 @@
                     </div>
                     <div>
                         <h3 class="text-sm font-bold text-gray-900">Dados do cliente</h3>
-                        <p class="text-xs text-gray-500">Cliente vinculado à ordem</p>
+                        <p class="text-xs text-gray-500">Cliente vinculado à ordem (listado em ordem alfabética)</p>
                     </div>
                 </div>
 
@@ -202,7 +203,7 @@
                 </div>
                 <div>
                     <h3 class="text-sm font-bold text-gray-900">Descrição do serviço</h3>
-                    <p class="text-xs text-gray-500">Escopo e responsabilidade técnica</p>
+                    <p class="text-xs text-gray-500">Escopo, mão de obra e detalhamento técnico do serviço executado</p>
                 </div>
             </div>
 
@@ -214,14 +215,19 @@
                                class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
                             TIPO DE SERVIÇO
                         </label>
-                        <select id="tipo_servico"
-                                name="tipo_servico"
-                                class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none transition-colors">
-                            {% set tipos_os = ['Fabricação de estrutura', 'Fabricação de estrutura metálica', 'Fabricação e automação', 'Manutenção industrial', 'Serralheria industrial'] %}
+                        <input type="text"
+                               id="tipo_servico"
+                               name="tipo_servico"
+                               list="lista_tipos_os"
+                               value="{{ dados.get('tipo_servico', 'Fabricação de estrutura metálica') }}"
+                               placeholder="Selecione ou digite o tipo de serviço..."
+                               class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none transition-colors">
+                        <datalist id="lista_tipos_os">
+                            {% set tipos_os = ['Fabricação de estrutura', 'Fabricação de estrutura metálica', 'Fabricação e automação', 'Manutenção industrial', 'Serralheria industrial', 'Caldeiraria e solda'] %}
                             {% for ts in tipos_os %}
-                            <option value="{{ ts }}" {% if dados.get('tipo_servico') == ts %}selected{% endif %}>{{ ts }}</option>
+                            <option value="{{ ts }}"></option>
                             {% endfor %}
-                        </select>
+                        </datalist>
                     </div>
 
                     <div>
@@ -277,6 +283,7 @@
                                id="valor_mao_de_obra"
                                name="valor_mao_de_obra"
                                value="{{ dados.get('valor_mao_de_obra', '0,00') }}"
+                               oninput="recalcularOrcamentoTela()"
                                placeholder="Ex.: 8500,00"
                                class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
                     </div>
@@ -287,12 +294,12 @@
                     <div>
                         <label for="descricao_detalhada"
                                class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                            DESCRIÇÃO DETALHADA
+                            DESCRIÇÃO DETALHADA DO SERVIÇO
                         </label>
                         <textarea id="descricao_detalhada"
                                   name="descricao_detalhada"
                                   rows="3"
-                                  placeholder="Fabricação e montagem de estrutura metálica para ampliação do galpão industrial."
+                                  placeholder="Descreva detalhadamente todas as atividades e serviços realizados na O.S."
                                   class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">{{ dados.get('descricao_detalhada', '') }}</textarea>
                     </div>
 
@@ -311,8 +318,7 @@
             </div>
         </section>
 
-        <!-- Card 04 - Materiais e Insumos do Estoque (RF04 / US03) -->
-        {% if not modo_edicao %}
+        <!-- Card 04 - Materiais Utilizados na O.S. (Ativo tanto na criação quanto na edição!) -->
         <section class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-gray-100">
                 <div class="flex items-center gap-3">
@@ -320,8 +326,10 @@
                         04
                     </div>
                     <div>
-                        <h3 class="text-sm font-bold text-gray-900">Materiais utilizados do estoque</h3>
-                        <p class="text-xs text-gray-500">Selecione as peças e quantidades para vínculo e baixa automática de saldo</p>
+                        <h3 class="text-sm font-bold text-gray-900">Materiais Utilizados na O.S.</h3>
+                        <p class="text-xs text-gray-500">
+                            Adicione, altere quantidades ou remova peças do estoque com cálculo automático e sincronização de saldo
+                        </p>
                     </div>
                 </div>
 
@@ -329,43 +337,70 @@
                         onclick="adicionarLinhaMaterial()"
                         class="bg-[#181B20] hover:bg-gray-800 text-white px-3.5 py-2 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors self-start sm:self-auto">
                     <i data-lucide="plus" class="w-3.5 h-3.5 text-[#F97316]"></i>
-                    <span>+ Adicionar material à OS</span>
+                    <span>+ Adicionar material do estoque</span>
                 </button>
             </div>
 
             <div id="container_materiais" class="space-y-3 mt-5">
                 {% for item_f in itens_form %}
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end bg-[#FAFAFB] border border-gray-200 rounded-lg p-3.5 linha-material">
-                    <div class="md:col-span-8">
+                    <div class="md:col-span-5">
                         <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
                             MATERIAL DO ESTOQUE
                         </label>
                         <select name="material_id[]"
-                                class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none">
-                            <option value="">Selecione um material...</option>
+                                onchange="recalcularOrcamentoTela()"
+                                class="select-material w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none">
+                            <option value="" data-custo="0">Selecione um material...</option>
                             {% for mat in materiais %}
-                            <option value="{{ mat.id }}" {% if (item_f.material_id | string) == (mat.id | string) %}selected{% endif %}>
+                            <option value="{{ mat.id }}"
+                                    data-custo="{{ mat.custo_unitario }}"
+                                    data-unidade="{{ mat.unidade }}"
+                                    {% if (item_f.material_id | string) == (mat.id | string) %}selected{% endif %}>
                                 {{ mat.codigo }} · {{ mat.descricao }} (Saldo: {{ mat.disponivel_formatado }} {{ mat.unidade }} · {{ mat.custo_unitario | moeda }})
                             </option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="md:col-span-3">
+
+                    <div class="md:col-span-2">
                         <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
                             QUANTIDADE
                         </label>
                         <input type="text"
                                name="material_quantidade[]"
                                value="{{ item_f.quantidade }}"
+                               oninput="recalcularOrcamentoTela()"
                                placeholder="Ex.: 2"
-                               class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none">
+                               class="input-quantidade w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none">
                     </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                            VL. UNITÁRIO
+                        </label>
+                        <input type="text"
+                               readonly
+                               value="R$ 0,00"
+                               class="campo-unitario w-full bg-gray-100/80 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-600 outline-none">
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                            SUBTOTAL ITEM
+                        </label>
+                        <input type="text"
+                               readonly
+                               value="R$ 0,00"
+                               class="campo-subtotal w-full bg-gray-100/80 border border-gray-200 rounded-lg px-3 py-2 text-sm font-bold text-gray-900 outline-none">
+                    </div>
+
                     <div class="md:col-span-1 flex justify-end">
                         <button type="button"
-                                onclick="this.closest('.linha-material').remove()"
-                                title="Remover item"
-                                class="w-9 h-9 rounded-lg border border-gray-200 bg-white text-red-500 hover:bg-red-50 flex items-center justify-center">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                onclick="removerLinhaMaterial(this)"
+                                title="Remover item da O.S."
+                                class="w-9 h-9 rounded-lg border border-gray-200 bg-white text-red-500 hover:bg-red-50 flex items-center justify-center text-xs font-bold">
+                            ✕
                         </button>
                     </div>
                 </div>
@@ -374,10 +409,30 @@
 
             <p id="aviso_sem_materiais"
                class="text-xs text-gray-400 mt-3 {% if itens_form %}hidden{% endif %}">
-                Nenhum material vinculado ainda. Clique em "+ Adicionar material à OS" caso o serviço utilize insumos do estoque.
+                Nenhum material vinculado a esta O.S. Clique em "+ Adicionar material do estoque" para incluir peças.
             </p>
+
+            <!-- Barra de Resumo Financeiro em Tempo Real -->
+            <div class="mt-6 pt-5 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-[#FAFAFB] border border-gray-200 rounded-xl p-4">
+                    <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">TOTAL DE MATERIAIS</span>
+                    <span id="resumo_total_materiais" class="block text-base font-bold text-gray-900 mt-1">R$ 0,00</span>
+                </div>
+
+                <div class="bg-[#FAFAFB] border border-gray-200 rounded-xl p-4">
+                    <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">MÃO DE OBRA</span>
+                    <span id="resumo_mao_de_obra" class="block text-base font-bold text-gray-900 mt-1">R$ 0,00</span>
+                </div>
+
+                <div class="bg-[#181B20] rounded-xl p-4 flex items-center justify-between">
+                    <div>
+                        <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">VALOR TOTAL DA O.S.</span>
+                        <span class="block text-[11px] text-gray-300 mt-0.5">Cálculo automático</span>
+                    </div>
+                    <span id="resumo_valor_total_os" class="text-lg font-bold text-[#F97316]">R$ 0,00</span>
+                </div>
+            </div>
         </section>
-        {% endif %}
 
         <!-- Barra Final de Ações -->
         <div class="flex items-center justify-end gap-3 pt-2">
@@ -396,33 +451,56 @@
 <!-- Template Oculto para Nova Linha de Material -->
 <template id="template_linha_material">
     <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end bg-[#FAFAFB] border border-gray-200 rounded-lg p-3.5 linha-material">
-        <div class="md:col-span-8">
+        <div class="md:col-span-5">
             <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
                 MATERIAL DO ESTOQUE
             </label>
             <select name="material_id[]"
-                    class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none">
-                <option value="">Selecione um material...</option>
+                    onchange="recalcularOrcamentoTela()"
+                    class="select-material w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none">
+                <option value="" data-custo="0">Selecione um material...</option>
                 {% for mat in materiais %}
-                <option value="{{ mat.id }}">
+                <option value="{{ mat.id }}"
+                        data-custo="{{ mat.custo_unitario }}"
+                        data-unidade="{{ mat.unidade }}">
                     {{ mat.codigo }} · {{ mat.descricao }} (Saldo: {{ mat.disponivel_formatado }} {{ mat.unidade }} · {{ mat.custo_unitario | moeda }})
                 </option>
                 {% endfor %}
             </select>
         </div>
-        <div class="md:col-span-3">
+        <div class="md:col-span-2">
             <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
                 QUANTIDADE
             </label>
             <input type="text"
                    name="material_quantidade[]"
+                   value="1"
+                   oninput="recalcularOrcamentoTela()"
                    placeholder="Ex.: 2"
-                   class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none">
+                   class="input-quantidade w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:border-[#F97316] focus:outline-none">
+        </div>
+        <div class="md:col-span-2">
+            <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                VL. UNITÁRIO
+            </label>
+            <input type="text"
+                   readonly
+                   value="R$ 0,00"
+                   class="campo-unitario w-full bg-gray-100/80 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-600 outline-none">
+        </div>
+        <div class="md:col-span-2">
+            <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                SUBTOTAL ITEM
+            </label>
+            <input type="text"
+                   readonly
+                   value="R$ 0,00"
+                   class="campo-subtotal w-full bg-gray-100/80 border border-gray-200 rounded-lg px-3 py-2 text-sm font-bold text-gray-900 outline-none">
         </div>
         <div class="md:col-span-1 flex justify-end">
             <button type="button"
                     onclick="removerLinhaMaterial(this)"
-                    title="Remover item"
+                    title="Remover item da O.S."
                     class="w-9 h-9 rounded-lg border border-gray-200 bg-white text-red-500 hover:bg-red-50 flex items-center justify-center text-xs font-bold">
                 ✕
             </button>
@@ -462,7 +540,7 @@
                 </label>
                 <input type="text"
                        id="rapido_razao_social"
-                       placeholder="Ex.: Metalúrgica Sorocaba Ltda."
+                       placeholder="Ex.: Metalúrgica Ribeirão Ltda."
                        class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-[#F97316] focus:outline-none">
             </div>
 
@@ -483,7 +561,7 @@
                     </label>
                     <input type="text"
                            id="rapido_telefone"
-                           placeholder="(15) 99999-0000"
+                           placeholder="(16) 99999-0000"
                            class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-[#F97316] focus:outline-none">
                 </div>
                 <div>
@@ -515,8 +593,59 @@
 </div>
 
 <script>
+    function parseNumeroBR(valorStr) {
+        if (!valorStr) return 0;
+        let limpo = String(valorStr).replace('R$', '').trim();
+        if (limpo.includes(',') && limpo.includes('.')) {
+            limpo = limpo.replace(/\./g, '').replace(',', '.');
+        } else if (limpo.includes(',')) {
+            limpo = limpo.replace(',', '.');
+        }
+        const n = parseFloat(limpo);
+        return isNaN(n) || n < 0 ? 0 : n;
+    }
+
+    function formatarMoedaBR(valor) {
+        const num = Number(valor || 0);
+        return 'R$ ' + num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function recalcularOrcamentoTela() {
+        const linhas = document.querySelectorAll('#container_materiais .linha-material');
+        let totalMateriais = 0;
+
+        linhas.forEach((linha) => {
+            const select = linha.querySelector('.select-material');
+            const inputQtd = linha.querySelector('.input-quantidade');
+            const campoUnit = linha.querySelector('.campo-unitario');
+            const campoSub = linha.querySelector('.campo-subtotal');
+
+            const opt = select && select.options[select.selectedIndex];
+            const custoUnit = opt ? parseFloat(opt.getAttribute('data-custo') || '0') : 0;
+            const qtd = inputQtd ? parseNumeroBR(inputQtd.value) : 0;
+            const subtotal = Math.round(custoUnit * qtd * 100) / 100;
+
+            if (campoUnit) campoUnit.value = formatarMoedaBR(custoUnit);
+            if (campoSub) campoSub.value = formatarMoedaBR(subtotal);
+            totalMateriais += subtotal;
+        });
+
+        const inputMaoObra = document.getElementById('valor_mao_de_obra');
+        const maoDeObra = inputMaoObra ? parseNumeroBR(inputMaoObra.value) : 0;
+        const totalOS = totalMateriais + maoDeObra;
+
+        const elMat = document.getElementById('resumo_total_materiais');
+        const elMao = document.getElementById('resumo_mao_de_obra');
+        const elTot = document.getElementById('resumo_valor_total_os');
+
+        if (elMat) elMat.textContent = formatarMoedaBR(totalMateriais);
+        if (elMao) elMao.textContent = formatarMoedaBR(maoDeObra);
+        if (elTot) elTot.textContent = formatarMoedaBR(totalOS);
+    }
+
     function atualizarCamposCliente() {
         const select = document.getElementById('cliente_id');
+        if (!select) return;
         const opt = select.options[select.selectedIndex];
         document.getElementById('cliente_codigo_view').value = opt ? (opt.getAttribute('data-codigo') || '') : '';
         document.getElementById('cliente_nome_view').value = opt ? (opt.getAttribute('data-nome') || '') : '';
@@ -530,6 +659,7 @@
         if (!tpl || !container) return;
         container.appendChild(tpl.content.cloneNode(true));
         if (aviso) aviso.classList.add('hidden');
+        recalcularOrcamentoTela();
     }
 
     function removerLinhaMaterial(btn) {
@@ -539,6 +669,7 @@
         if (container && container.children.length === 0 && aviso) {
             aviso.classList.remove('hidden');
         }
+        recalcularOrcamentoTela();
     }
 
     function abrirModalCadastroRapido() {
@@ -606,6 +737,9 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', atualizarCamposCliente);
+    document.addEventListener('DOMContentLoaded', () => {
+        atualizarCamposCliente();
+        recalcularOrcamentoTela();
+    });
 </script>
 {% endblock %}

@@ -90,19 +90,43 @@
         </a>
     </div>
 
-    <!-- Abas de Categorias -->
-    <div class="flex flex-wrap items-center gap-2 mt-4">
-        <a href="{{ url_for('estoque.listar_estoque', q=busca if busca else None, categoria='Todas') }}"
-           class="px-3.5 py-1.5 rounded-lg text-xs transition-all {% if categoria_atual == 'Todas' %}border border-[#F97316] bg-orange-50/50 text-[#F97316] font-semibold{% else %}bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium{% endif %}">
-            Todas as categorias
-        </a>
+    <!-- Barra Elegante e Dinâmica de Filtro por Categoria -->
+    <div class="mt-4 bg-white border border-gray-200 rounded-xl p-2.5 shadow-sm flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-1.5">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                <i data-lucide="layers" class="w-3.5 h-3.5 text-[#F97316]"></i>
+                <span>Categorias:</span>
+            </span>
 
-        {% for cat in categorias %}
-        <a href="{{ url_for('estoque.listar_estoque', q=busca if busca else None, categoria=cat) }}"
-           class="px-3.5 py-1.5 rounded-lg text-xs transition-all {% if categoria_atual == cat %}border border-[#F97316] bg-orange-50/50 text-[#F97316] font-semibold{% else %}bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium{% endif %}">
-            {{ cat }}
-        </a>
-        {% endfor %}
+            <a href="{{ url_for('estoque.listar_estoque', q=busca if busca else None, categoria='Todas') }}"
+               class="px-3.5 py-1.5 rounded-lg text-xs transition-all {% if categoria_atual == 'Todas' %}bg-[#181B20] text-white font-semibold shadow-xs{% else %}bg-gray-50 hover:bg-gray-100 text-gray-600 font-medium{% endif %}">
+                Todas as categorias
+            </a>
+
+            {% for cat in categorias %}
+            <a href="{{ url_for('estoque.listar_estoque', q=busca if busca else None, categoria=cat) }}"
+               class="px-3.5 py-1.5 rounded-lg text-xs transition-all {% if categoria_atual | lower == cat | lower %}bg-[#F97316] text-white font-semibold shadow-xs{% else %}bg-gray-50 hover:bg-gray-100 text-gray-600 font-medium{% endif %}">
+                {{ cat }}
+            </a>
+            {% endfor %}
+        </div>
+
+        <form method="GET" action="{{ url_for('estoque.listar_estoque') }}" class="flex items-center gap-2">
+            {% if busca %}
+            <input type="hidden" name="q" value="{{ busca }}">
+            {% endif %}
+            <div class="bg-[#F8F9FA] border border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-700 font-medium inline-flex items-center gap-1.5">
+                <i data-lucide="tag" class="w-3.5 h-3.5 text-gray-400"></i>
+                <select name="categoria"
+                        onchange="this.form.submit()"
+                        class="bg-transparent border-none outline-none font-semibold text-gray-800 cursor-pointer pr-1">
+                    <option value="Todas" {% if categoria_atual == 'Todas' %}selected{% endif %}>Filtrar: Todas</option>
+                    {% for cat in categorias %}
+                    <option value="{{ cat }}" {% if categoria_atual | lower == cat | lower %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
     </div>
 
     <!-- Grid Principal Inferior -->
@@ -111,11 +135,9 @@
         <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
                 <h2 class="font-bold text-gray-900 text-sm">Posição de estoque</h2>
-                <button type="button"
-                        class="bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 px-3 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 transition-colors">
-                    <i data-lucide="filter" class="w-3.5 h-3.5 text-gray-400"></i>
-                    <span>Filtros</span>
-                </button>
+                <span class="text-xs text-gray-400">
+                    {% if categoria_atual != 'Todas' %}Categoria: <strong class="text-gray-700">{{ categoria_atual }}</strong> · {% endif %}{{ materiais | length }} itens exibidos
+                </span>
             </div>
 
             <div class="overflow-x-auto">
