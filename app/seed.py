@@ -9,13 +9,13 @@ def seed_database() -> None:
     if Cliente.query.first() is not None:
         return
 
-    # 1. Clientes
+    # 1. Clientes (CNPJs e CPF com dígitos verificadores reais da Receita Federal)
     cli_0248 = Cliente(
         codigo="CLI-0248",
         tipo_pessoa="Pessoa jurídica",
         razao_social="Construtora Horizonte Ltda.",
         nome_fantasia="Horizonte Engenharia e Construções",
-        cpf_cnpj="18.420.331/0001-06",
+        cpf_cnpj="18.420.331/0001-46",
         inscricao_estadual="669.842.110.117",
         telefone="(15) 3312-8400",
         email="compras@horizonte.com.br",
@@ -37,7 +37,7 @@ def seed_database() -> None:
         tipo_pessoa="Pessoa jurídica",
         razao_social="Indústria Nova Era S.A.",
         nome_fantasia="Nova Era Industrial",
-        cpf_cnpj="42.580.176/0001-54",
+        cpf_cnpj="42.580.176/0001-00",
         inscricao_estadual="114.920.331.110",
         telefone="(11) 4082-1290",
         email="suprimentos@novaera.com.br",
@@ -50,7 +50,7 @@ def seed_database() -> None:
         codigo="CLI-0246",
         tipo_pessoa="Pessoa física",
         razao_social="Marcos Antônio Ribeiro",
-        cpf_cnpj="218.430.928-40",
+        cpf_cnpj="218.430.928-16",
         telefone="(15) 99742-1280",
         email="marcos.ribeiro@email.com",
         cidade="Sorocaba",
@@ -63,7 +63,7 @@ def seed_database() -> None:
         tipo_pessoa="Pessoa jurídica",
         razao_social="Grupo Aliança Engenharia",
         nome_fantasia="Aliança Engenharia",
-        cpf_cnpj="07.442.991/0001-20",
+        cpf_cnpj="07.442.991/0001-01",
         telefone="(15) 3035-4770",
         email="contato@aliancaeng.com.br",
         cidade="Sorocaba",
@@ -76,7 +76,7 @@ def seed_database() -> None:
         tipo_pessoa="Pessoa jurídica",
         razao_social="RM Projetos Industriais",
         nome_fantasia="RM Engenharia",
-        cpf_cnpj="31.987.402/0001-84",
+        cpf_cnpj="31.987.402/0001-55",
         telefone="(11) 4198-0122",
         email="projetos@rmindustrial.com.br",
         cidade="Campinas",
@@ -89,7 +89,7 @@ def seed_database() -> None:
         tipo_pessoa="Pessoa jurídica",
         razao_social="Metalúrgica São Lucas",
         nome_fantasia="São Lucas Metalurgia",
-        cpf_cnpj="54.203.114/0001-31",
+        cpf_cnpj="54.203.114/0001-68",
         telefone="(15) 3228-9044",
         email="financeiro@saolucas.com.br",
         cidade="Sorocaba",

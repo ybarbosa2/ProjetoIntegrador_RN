@@ -28,10 +28,10 @@
             <!-- Card do Usuário Logado (Abaixo do Logo) -->
             <div class="mx-4 mt-2 mb-4 p-3 rounded-xl bg-[#22262E] border border-gray-800 flex items-center gap-3">
                 <div class="w-9 h-9 rounded-full bg-[#F97316] text-white text-xs font-bold flex items-center justify-center shrink-0">
-                    RB
+                    {{ current_user_initials if current_user_initials is defined else 'RB' }}
                 </div>
                 <div class="min-w-0">
-                    <div class="text-sm font-semibold text-white leading-tight truncate">Rogério Barbosa</div>
+                    <div class="text-sm font-semibold text-white leading-tight truncate">{{ current_user_name if current_user_name is defined else 'Rogério Barbosa' }}</div>
                     <div class="text-[11px] text-gray-400 mt-0.5">Administrador</div>
                 </div>
             </div>
@@ -115,14 +115,7 @@
             </div>
 
             <div class="flex items-center gap-3">
-                <!-- Botão de Notificações -->
-                <button type="button"
-                        title="Notificações"
-                        class="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 relative hover:bg-gray-50 transition-colors">
-                    <i data-lucide="bell" class="w-4 h-4"></i>
-                    <span class="w-2 h-2 rounded-full bg-[#F97316] absolute top-2 right-2"></span>
-                </button>
-
+                {% if user_logged is not defined or user_logged %}
                 <!-- Botão de Log-off ("Sair") -->
                 <a href="{{ url_for('main.logout') }}"
                    title="Encerrar sessão"
@@ -130,6 +123,7 @@
                     <i data-lucide="log-out" class="w-4 h-4"></i>
                     <span>Sair</span>
                 </a>
+                {% endif %}
             </div>
         </header>
 

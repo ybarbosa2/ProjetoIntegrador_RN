@@ -95,7 +95,7 @@ def test_deve_gerar_orcamento_a_partir_da_os(app):
         assert orcamento["codigo_orcamento"] == "ORC-1048"
         assert orcamento["numero_os"] == "OS-1048"
         assert orcamento["cliente"]["razao_social"] == "Construtora Horizonte Ltda."
-        assert orcamento["cliente"]["cpf_cnpj"] == "18.420.331/0001-06"
+        assert orcamento["cliente"]["cpf_cnpj"] == "18.420.331/0001-46"
         assert len(orcamento["itens"]) == 2
         assert orcamento["valor_materiais"] == 2747.40
         assert orcamento["valor_mao_de_obra"] == 8500.00
@@ -220,7 +220,7 @@ def test_fluxo_cadastro_rapido_cliente_e_abertura_os(client):
         "/clientes/cadastro-rapido",
         json={
             "razao_social": "Metalúrgica Votorantim Express Ltda.",
-            "cpf_cnpj": "91.334.552/0001-08",
+            "cpf_cnpj": "91.334.552/0001-91",
             "telefone": "(15) 3243-9900",
             "email": "contato@votorantimexpress.com.br",
         },
@@ -437,3 +437,140 @@ def test_edicao_os_completa_com_sincronizacao_inteligente_estoque(app, client):
         assert db.session.get(Material, chapa_id).disponivel == 6.0  # 8 - 2
         assert db.session.get(Material, barra_id).disponivel == 50.0  # 38 + 12 (estornado)
         assert db.session.get(Material, cantoneira_id).disponivel == 42.0  # 46 - 4 (baixado)
+
+
+def test_deve_cancelar_ou_excluir_os_devolvendo_materiais_ao_estoque(app, client, os_service):
+    """QA Bug 6: Verifica cancelamento e exclusão de O.S. com estorno automático ao estoque e atualização do badge."""
+    with app.app_context():
+        # Estado inicial do seed:
+        # OS-1048 vincula 6 un. de MAT-0092 (disponível: 8.0) e 12 br. de MAT-0088 (disponível: 38.0)
+        # Total de O.S. ativas (não Concluída e não Cancelada) = 4
+        assert os_service.obter_resumo()["ativas"] == 4
+        os_1048 = OrdemServico.query.filter_by(numero="OS-1048").first()
+        chapa = Material.query.filter_by(codigo="MAT-0092").first()
+        barra = Material.query.filter_by(codigo="MAT-0088").first()
+        cantoneira = Material.query.filter_by(codigo="MAT-0090").first()  # disponível: 46.0
+        cliente = Cliente.query.filter_by(codigo="CLI-0248").first()
+
+        os_1048_id = os_1048.id
+        chapa_id = chapa.id
+        barra_id = barra.id
+        cantoneira_id = cantoneira.id
+        cliente_id = cliente.id
+
+    # 1. Cancelamento da OS-1048 via rota POST /os/<id>/cancelar
+    resp_cancelar = client.post(f"/os/{os_1048_id}/cancelar", follow_redirects=True)
+    assert resp_cancelar.status_code == 200
+    html_cancelada = resp_cancelar.get_data(as_text=True)
+    assert "• Cancelada" in html_cancelada
+    assert "bg-red-50 text-red-600 border border-red-200" in html_cancelada
+
+    with app.app_context():
+        assert db.session.get(OrdemServico, os_1048_id).status == "Cancelada"
+        assert db.session.get(Material, chapa_id).disponivel == 14.0  # 8 + 6 estornados
+        assert db.session.get(Material, barra_id).disponivel == 50.0  # 38 + 12 estornados
+        # O.S. Cancelada não soma nas ordens ativas da sidebar
+        assert os_service.obter_resumo()["ativas"] == 3
+
+    # 2. Exclusão da OS-1048 já Cancelada NÃO deve estornar em duplicidade
+    resp_excluir_cancelada = client.post(f"/os/{os_1048_id}/excluir", follow_redirects=True)
+    assert resp_excluir_cancelada.status_code == 200
+    with app.app_context():
+        assert db.session.get(OrdemServico, os_1048_id) is None
+        assert db.session.get(Material, chapa_id).disponivel == 14.0
+        assert db.session.get(Material, barra_id).disponivel == 50.0
+
+    # 3. Criação de nova O.S. ativa consumindo 5 br. de MAT-0090 (saldo vai de 46 para 41) e exclusão direta
+    resp_nova = client.post(
+        "/os/nova",
+        data={
+            "numero": "OS-1050",
+            "cliente_id": str(cliente_id),
+            "status": "Em andamento",
+            "tipo_servico": "Serralheria industrial",
+            "descricao_detalhada": "Portão basculante sob medida.",
+            "valor_mao_de_obra": "2500,00",
+            "material_id[]": [str(cantoneira_id)],
+            "material_quantidade[]": ["5"],
+        },
+        follow_redirects=True,
+    )
+    assert resp_nova.status_code == 200
+
+    with app.app_context():
+        assert db.session.get(Material, cantoneira_id).disponivel == 41.0
+        os_1050 = OrdemServico.query.filter_by(numero="OS-1050").first()
+        assert os_1050 is not None
+        os_1050_id = os_1050.id
+
+    resp_excluir_ativa = client.post(f"/os/{os_1050_id}/excluir", follow_redirects=True)
+    assert resp_excluir_ativa.status_code == 200
+    assert "excluída com sucesso" in resp_excluir_ativa.get_data(as_text=True)
+
+    with app.app_context():
+        assert db.session.get(OrdemServico, os_1050_id) is None
+        assert db.session.get(Material, cantoneira_id).disponivel == 46.0  # 41 + 5 devolvidos
+
+
+def test_deve_encerrar_sessao_no_logout_e_proteger_rotas(client):
+    """QA Bug 1 e Bug 2: Verifica remoção do sino morto, login real, encerramento de sessão e bloqueio de rotas."""
+    # Verifica que o botão morto de notificações (sino) foi removido da Topbar
+    resp_home_inicial = client.get("/")
+    assert resp_home_inicial.status_code == 200
+    assert 'title="Notificações"' not in resp_home_inicial.get_data(as_text=True)
+
+    # Verifica tela de login e tentativa com senha incorreta
+    resp_login_page = client.get("/login")
+    assert resp_login_page.status_code == 200
+    assert "Acesso ao Sistema — R.N. Soluções Industriais" in resp_login_page.get_data(as_text=True)
+
+    resp_invalido = client.post(
+        "/login",
+        data={"usuario": "rogerio@rnsolucoes.com.br", "senha": "senha_errada"},
+    )
+    assert resp_invalido.status_code == 200
+    assert "Usuário ou senha inválidos" in resp_invalido.get_data(as_text=True)
+
+    # Login válido grava sessão real
+    resp_login_ok = client.post(
+        "/login",
+        data={"usuario": "rogerio@rnsolucoes.com.br", "senha": "admin123"},
+        follow_redirects=True,
+    )
+    assert resp_login_ok.status_code == 200
+    with client.session_transaction() as sess:
+        assert sess.get("user_logged") is True
+        assert sess.get("user_name") == "Rogério Barbosa"
+
+    # Logout limpa sessão e redireciona obrigatoriamente para /login
+    resp_logout = client.get("/logout")
+    assert resp_logout.status_code == 302
+    assert "/login" in resp_logout.headers["Location"]
+
+    resp_pos_logout = client.get("/login")
+    assert "Sessão encerrada com segurança. Faça login para acessar o sistema." in resp_pos_logout.get_data(
+        as_text=True
+    )
+
+    with client.session_transaction() as sess:
+        assert sess.get("user_logged") is None
+
+    # Rotas protegidas redirecionam para /login enquanto deslogado
+    for rota_protegida in ("/", "/clientes", "/estoque", "/os", "/configuracoes"):
+        resp_bloqueada = client.get(rota_protegida)
+        assert resp_bloqueada.status_code == 302
+        assert "/login" in resp_bloqueada.headers["Location"]
+
+    # Novo login via cadastro rápido de operador restaura o acesso
+    resp_novo_op = client.post(
+        "/login/operador",
+        data={
+            "nome": "Carlos Mendes",
+            "usuario": "carlos@rnsolucoes.com.br",
+            "senha": "oficina123",
+        },
+        follow_redirects=True,
+    )
+    assert resp_novo_op.status_code == 200
+    assert "Carlos Mendes" in resp_novo_op.get_data(as_text=True)
+    assert client.get("/os").status_code == 200

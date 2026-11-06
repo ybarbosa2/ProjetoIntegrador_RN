@@ -187,6 +187,14 @@
                             <span class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 text-xs font-medium px-2.5 py-1 rounded-full">
                                 • Aguardando material
                             </span>
+                            {% elif os.status == 'Cancelada' %}
+                            <span class="inline-flex items-center gap-1.5 bg-red-50 text-red-600 border border-red-200 text-xs font-medium px-2.5 py-1 rounded-full">
+                                • Cancelada
+                            </span>
+                            {% elif os.status == 'Aberta' %}
+                            <span class="inline-flex items-center gap-1.5 bg-orange-50 text-[#F97316] text-xs font-medium px-2.5 py-1 rounded-full">
+                                • Aberta
+                            </span>
                             {% else %}
                             <span class="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-medium px-2.5 py-1 rounded-full">
                                 • {{ os.status }}

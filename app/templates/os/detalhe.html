@@ -69,6 +69,30 @@
                 <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
                 <span>Editar OS</span>
             </a>
+
+            {% if os.status != 'Cancelada' %}
+            <form method="POST"
+                  action="{{ url_for('os.cancelar_os', id=os.id) }}"
+                  onsubmit="return confirm('Deseja cancelar a Ordem de Serviço #{{ os.numero }}? Os materiais vinculados serão devolvidos ao estoque.');"
+                  class="inline">
+                <button type="submit"
+                        class="border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 font-semibold px-3.5 py-2.5 rounded-lg text-xs inline-flex items-center gap-1.5 shadow-sm transition-colors">
+                    <i data-lucide="ban" class="w-3.5 h-3.5"></i>
+                    <span>Cancelar OS</span>
+                </button>
+            </form>
+            {% endif %}
+
+            <form method="POST"
+                  action="{{ url_for('os.excluir_os', id=os.id) }}"
+                  onsubmit="return confirm('Deseja excluir permanentemente a Ordem de Serviço #{{ os.numero }}? Os materiais vinculados serão devolvidos ao estoque.');"
+                  class="inline">
+                <button type="submit"
+                        class="border border-red-200 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-semibold px-3.5 py-2.5 rounded-lg text-xs inline-flex items-center gap-1.5 shadow-sm transition-colors">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    <span>Excluir OS</span>
+                </button>
+            </form>
         </div>
     </div>
 
@@ -113,6 +137,10 @@
                 {% elif os.status == 'Concluída' %}
                 <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs font-medium px-2.5 py-1 rounded-full">
                     • Concluída
+                </span>
+                {% elif os.status == 'Cancelada' %}
+                <span class="inline-flex items-center gap-1 bg-red-50 text-red-600 border border-red-200 text-xs font-medium px-2.5 py-1 rounded-full">
+                    • Cancelada
                 </span>
                 {% else %}
                 <span class="inline-flex items-center gap-1 bg-gray-100 text-gray-700 text-xs font-medium px-2.5 py-1 rounded-full">
