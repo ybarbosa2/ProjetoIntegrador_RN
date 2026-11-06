@@ -1,4 +1,5 @@
 from datetime import datetime
+import math
 from typing import Any, Dict, List
 
 from flask import (
@@ -18,7 +19,13 @@ from app.services.os_service import OsService
 
 os_bp = Blueprint("os", __name__)
 
-STATUS_OPCOES = ["Em andamento", "Aguardando material", "Aberta", "Concluída"]
+STATUS_OPCOES = [
+    "Em andamento",
+    "Aguardando material",
+    "Aberta",
+    "Concluída",
+    "Cancelada",
+]
 
 PERIODO_OPCOES = [
     ("sempre", "Todo o período (Sempre)"),
@@ -84,6 +91,10 @@ def listar_os():
     status = (request.args.get("status") or "Todos").strip()
     cliente_id = (request.args.get("cliente_id") or "Todos").strip()
     periodo = (request.args.get("periodo") or "sempre").strip()
+    page = request.args.get("page", 1, type=int) or 1
+    if page < 1:
+        page = 1
+    per_page = 10
 
     if status not in ("Todos", *STATUS_OPCOES):
         status = "Todos"
@@ -91,7 +102,7 @@ def listar_os():
     os_service = OsService()
     cliente_service = ClienteService()
 
-    ordens = os_service.listar_ordens(
+    todas_ordens = os_service.listar_ordens(
         busca=busca,
         status=status,
         cliente_id=cliente_id,
@@ -100,10 +111,21 @@ def listar_os():
     clientes = cliente_service.listar_clientes(ordenar_por_nome=True)
     resumo = os_service.obter_resumo()
 
+    total_filtrado = len(todas_ordens)
+    total_pages = max(1, math.ceil(total_filtrado / per_page))
+    if page > total_pages:
+        page = total_pages
+
+    inicio_idx = (page - 1) * per_page
+    fim_idx = inicio_idx + per_page
+    ordens_pagina = todas_ordens[inicio_idx:fim_idx]
+    exibindo_inicio = (inicio_idx + 1) if total_filtrado > 0 else 0
+    exibindo_fim = min(fim_idx, total_filtrado)
+
     return render_template(
         "os/lista.html",
         active_page="os",
-        ordens=ordens,
+        ordens=ordens_pagina,
         clientes=clientes,
         status_opcoes=STATUS_OPCOES,
         periodo_opcoes=PERIODO_OPCOES,
@@ -113,6 +135,12 @@ def listar_os():
         periodo_atual=periodo,
         resumo=resumo,
         total_ordens=resumo["total"],
+        total_filtrado=total_filtrado,
+        page=page,
+        per_page=per_page,
+        total_pages=total_pages,
+        exibindo_inicio=exibindo_inicio,
+        exibindo_fim=exibindo_fim,
     )
 
 
@@ -247,3 +275,41 @@ def editar_os(id: int):
         dados=_os_para_dict(ordem),
         itens_form=_itens_os_para_form(ordem),
     )
+
+
+@os_bp.route("/os/<int:id>/cancelar", methods=["POST"])
+def cancelar_os(id: int):
+    os_service = OsService()
+    ordem = os_service.buscar_por_id(id)
+    if ordem is None:
+        abort(404)
+
+    try:
+        os_service.cancelar_ordem_servico(id)
+        flash(
+            f"Ordem de Serviço #{ordem.numero} cancelada e materiais vinculados estornados ao estoque!",
+            "success",
+        )
+    except ValueError as err:
+        flash(str(err), "error")
+
+    return redirect(url_for("os.detalhe_os", id=id))
+
+
+@os_bp.route("/os/<int:id>/excluir", methods=["POST"])
+def excluir_os(id: int):
+    os_service = OsService()
+    ordem = os_service.buscar_por_id(id)
+    if ordem is None:
+        abort(404)
+
+    try:
+        numero = os_service.excluir_ordem_servico(id)
+        flash(
+            f"Ordem de Serviço #{numero} excluída com sucesso e materiais estornados ao estoque!",
+            "success",
+        )
+    except ValueError as err:
+        flash(str(err), "error")
+
+    return redirect(url_for("os.listar_os"))

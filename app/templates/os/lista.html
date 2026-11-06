@@ -108,7 +108,7 @@
                         <th class="px-6 py-3.5">PRAZO</th>
                         <th class="px-6 py-3.5">RESPONSÁVEL</th>
                         <th class="px-6 py-3.5">STATUS</th>
-                        <th class="px-6 py-3.5 text-right"></th>
+                        <th class="px-6 py-3.5">AÇÕES</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 text-sm">
@@ -150,18 +150,39 @@
                             <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs font-medium px-2.5 py-1 rounded-full">
                                 • Concluída
                             </span>
+                            {% elif os_item.status == 'Cancelada' %}
+                            <span class="inline-flex items-center gap-1 bg-red-50 text-red-600 border border-red-200 text-xs font-medium px-2.5 py-1 rounded-full">
+                                • Cancelada
+                            </span>
                             {% else %}
                             <span class="inline-flex items-center gap-1 bg-gray-100 text-gray-700 text-xs font-medium px-2.5 py-1 rounded-full">
                                 • {{ os_item.status }}
                             </span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 text-right whitespace-nowrap">
-                            <a href="{{ url_for('os.detalhe_os', id=os_item.id) }}"
-                               title="Ver detalhes da O.S."
-                               class="w-8 h-8 rounded-lg inline-flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors">
-                                <i data-lucide="more-horizontal" class="w-4 h-4"></i>
-                            </a>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center gap-1.5">
+                                <a href="{{ url_for('os.detalhe_os', id=os_item.id) }}"
+                                   title="Ver detalhes"
+                                   class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-colors">
+                                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                </a>
+                                <a href="{{ url_for('os.editar_os', id=os_item.id) }}"
+                                   title="Editar"
+                                   class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-colors">
+                                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                                </a>
+                                <form method="POST"
+                                      action="{{ url_for('os.excluir_os', id=os_item.id) }}"
+                                      onsubmit="return confirm('Deseja realmente excluir a Ordem de Serviço #{{ os_item.numero }}? Os materiais vinculados serão devolvidos ao estoque.');"
+                                      class="inline">
+                                    <button type="submit"
+                                            title="Excluir O.S."
+                                            class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-red-500 hover:bg-red-50 transition-colors">
+                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     {% else %}
@@ -175,34 +196,38 @@
             </table>
         </div>
 
-        <!-- Rodapé com Paginação -->
+        <!-- Rodapé com Paginação Real -->
         <div class="px-6 py-4 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-gray-400">
             <span>
-                Exibindo {% if ordens|length > 0 %}1–{{ ordens|length }}{% else %}0{% endif %} de {{ total_ordens }} registros
+                Exibindo {% if total_filtrado > 0 %}{{ exibindo_inicio }}–{{ exibindo_fim }}{% else %}0{% endif %} de {{ total_filtrado }} registros
             </span>
 
+            {% if total_pages > 1 %}
             <div class="flex items-center gap-1.5">
-                <button type="button"
-                        class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50">
+                {% if page > 1 %}
+                <a href="{{ url_for('os.listar_os', q=busca if busca else None, status=status_atual if status_atual != 'Todos' else None, cliente_id=cliente_id_atual if cliente_id_atual != 'Todos' else None, periodo=periodo_atual if periodo_atual != 'sempre' else None, page=page - 1) }}"
+                   class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors">
                     &lt;
-                </button>
-                <button type="button"
-                        class="w-8 h-8 rounded-lg bg-[#181B20] text-white font-semibold flex items-center justify-center">
-                    1
-                </button>
-                <button type="button"
-                        class="w-8 h-8 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center">
-                    2
-                </button>
-                <button type="button"
-                        class="w-8 h-8 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center">
-                    3
-                </button>
-                <button type="button"
-                        class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50">
+                </a>
+                {% endif %}
+
+                {% for num_p in range(1, total_pages + 1) %}
+                <a href="{{ url_for('os.listar_os', q=busca if busca else None, status=status_atual if status_atual != 'Todos' else None, cliente_id=cliente_id_atual if cliente_id_atual != 'Todos' else None, periodo=periodo_atual if periodo_atual != 'sempre' else None, page=num_p) }}"
+                   class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors {% if num_p == page %}bg-[#181B20] text-white font-semibold{% else %}border border-gray-200 text-gray-600 hover:bg-gray-50{% endif %}">
+                    {{ num_p }}
+                </a>
+                {% endfor %}
+
+                {% if page < total_pages %}
+                <a href="{{ url_for('os.listar_os', q=busca if busca else None, status=status_atual if status_atual != 'Todos' else None, cliente_id=cliente_id_atual if cliente_id_atual != 'Todos' else None, periodo=periodo_atual if periodo_atual != 'sempre' else None, page=page + 1) }}"
+                   class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors">
                     &gt;
-                </button>
+                </a>
+                {% endif %}
             </div>
+            {% else %}
+            <span class="text-xs font-medium text-gray-400">Página 1 de 1</span>
+            {% endif %}
         </div>
     </div>
 </div>

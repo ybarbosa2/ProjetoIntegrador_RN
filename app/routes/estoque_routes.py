@@ -1,3 +1,4 @@
+import math
 from typing import Any, Dict
 
 from flask import (
@@ -42,26 +43,47 @@ def _material_para_dict(material: Material) -> Dict[str, Any]:
 def listar_estoque():
     busca = (request.args.get("q") or "").strip()
     categoria = (request.args.get("categoria") or "Todas").strip()
+    page = request.args.get("page", 1, type=int) or 1
+    if page < 1:
+        page = 1
+    per_page = 10
 
     if not categoria or categoria in ("Todas", "Todas as categorias", "todas"):
         categoria = "Todas"
 
     service = EstoqueService()
     categorias_disponiveis = service.listar_categorias_distintas()
-    materiais = service.listar_materiais(busca=busca, categoria=categoria)
+    todos_materiais = service.listar_materiais(busca=busca, categoria=categoria)
     indicadores = service.obter_indicadores_estoque()
     ultimas_movimentacoes = service.listar_ultimas_movimentacoes(limite=5)
+
+    total_filtrado = len(todos_materiais)
+    total_pages = max(1, math.ceil(total_filtrado / per_page))
+    if page > total_pages:
+        page = total_pages
+
+    inicio_idx = (page - 1) * per_page
+    fim_idx = inicio_idx + per_page
+    materiais_pagina = todos_materiais[inicio_idx:fim_idx]
+    exibindo_inicio = (inicio_idx + 1) if total_filtrado > 0 else 0
+    exibindo_fim = min(fim_idx, total_filtrado)
 
     return render_template(
         "estoque/lista.html",
         active_page="estoque",
-        materiais=materiais,
+        materiais=materiais_pagina,
         busca=busca,
         categoria_atual=categoria,
         categorias=categorias_disponiveis,
         indicadores=indicadores,
         itens_baixo_estoque=indicadores["itens_baixo_estoque"],
         ultimas_movimentacoes=ultimas_movimentacoes,
+        total_filtrado=total_filtrado,
+        page=page,
+        per_page=per_page,
+        total_pages=total_pages,
+        exibindo_inicio=exibindo_inicio,
+        exibindo_fim=exibindo_fim,
     )
 
 
