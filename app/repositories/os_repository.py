@@ -110,7 +110,9 @@ class OsRepository:
 
     @staticmethod
     def contar_ativas() -> int:
-        return OrdemServico.query.filter(OrdemServico.status != "Concluída").count()
+        return OrdemServico.query.filter(
+            OrdemServico.status.notin_(["Concluída", "Cancelada"])
+        ).count()
 
     @staticmethod
     def contar_em_andamento() -> int:

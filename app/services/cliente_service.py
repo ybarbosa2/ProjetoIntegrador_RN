@@ -36,6 +36,8 @@ class ClienteService:
 
     def cadastrar_cliente(self, dados: Dict[str, Any]) -> Cliente:
         razao_social, cpf_cnpj = CnpjValidator.validar_dados_obrigatorios(dados)
+        telefone_formatado = CnpjValidator.validar_telefone(dados.get("telefone"))
+        email_validado = CnpjValidator.validar_email(dados.get("email"))
 
         existente = self.repository.buscar_por_cpf_cnpj(cpf_cnpj)
         if existente is not None:
@@ -50,8 +52,8 @@ class ClienteService:
             cpf_cnpj=cpf_cnpj,
             inscricao_estadual=(dados.get("inscricao_estadual") or "").strip() or None,
             situacao=(dados.get("situacao") or "Ativo").strip(),
-            telefone=(dados.get("telefone") or "").strip() or None,
-            email=(dados.get("email") or "").strip() or None,
+            telefone=telefone_formatado,
+            email=email_validado,
             cep=(dados.get("cep") or "").strip() or None,
             endereco=(dados.get("endereco") or "").strip() or None,
             numero=(dados.get("numero") or "").strip() or None,
@@ -70,7 +72,13 @@ class ClienteService:
         if cliente is None:
             raise ValueError("Cliente não encontrado.")
 
-        razao_social, cpf_cnpj = CnpjValidator.validar_dados_obrigatorios(dados)
+        dados_validacao = dict(dados)
+        if not (dados_validacao.get("tipo_pessoa") or "").strip():
+            dados_validacao["tipo_pessoa"] = cliente.tipo_pessoa or "Pessoa jurídica"
+
+        razao_social, cpf_cnpj = CnpjValidator.validar_dados_obrigatorios(dados_validacao)
+        telefone_formatado = CnpjValidator.validar_telefone(dados.get("telefone"))
+        email_validado = CnpjValidator.validar_email(dados.get("email"))
 
         existente = self.repository.buscar_por_cpf_cnpj(cpf_cnpj)
         if existente is not None and existente.id != cliente.id:
@@ -84,8 +92,8 @@ class ClienteService:
         cliente.cpf_cnpj = cpf_cnpj
         cliente.inscricao_estadual = (dados.get("inscricao_estadual") or "").strip() or None
         cliente.situacao = (dados.get("situacao") or cliente.situacao or "Ativo").strip()
-        cliente.telefone = (dados.get("telefone") or "").strip() or None
-        cliente.email = (dados.get("email") or "").strip() or None
+        cliente.telefone = telefone_formatado
+        cliente.email = email_validado
         cliente.cep = (dados.get("cep") or "").strip() or None
         cliente.endereco = (dados.get("endereco") or "").strip() or None
         cliente.numero = (dados.get("numero") or "").strip() or None

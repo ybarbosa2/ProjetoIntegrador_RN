@@ -1,3 +1,4 @@
+import math
 from typing import Any, Dict
 
 from flask import (
@@ -42,22 +43,43 @@ def _cliente_para_dict(cliente: Cliente) -> Dict[str, Any]:
 def listar_clientes():
     busca = (request.args.get("q") or "").strip()
     situacao = (request.args.get("situacao") or "Todos").strip()
+    page = request.args.get("page", 1, type=int) or 1
+    if page < 1:
+        page = 1
+    per_page = 10
 
     if situacao not in ("Todos", "Ativo", "Inativo"):
         situacao = "Todos"
 
     service = ClienteService()
-    clientes = service.listar_clientes(busca=busca, situacao=situacao)
+    todos_clientes = service.listar_clientes(busca=busca, situacao=situacao)
     resumo = service.obter_resumo()
+
+    total_filtrado = len(todos_clientes)
+    total_pages = max(1, math.ceil(total_filtrado / per_page))
+    if page > total_pages:
+        page = total_pages
+
+    inicio_idx = (page - 1) * per_page
+    fim_idx = inicio_idx + per_page
+    clientes_pagina = todos_clientes[inicio_idx:fim_idx]
+    exibindo_inicio = (inicio_idx + 1) if total_filtrado > 0 else 0
+    exibindo_fim = min(fim_idx, total_filtrado)
 
     return render_template(
         "clientes/lista.html",
         active_page="clientes",
-        clientes=clientes,
+        clientes=clientes_pagina,
         busca=busca,
         situacao_atual=situacao,
         resumo=resumo,
         total_clientes=resumo["total"],
+        total_filtrado=total_filtrado,
+        page=page,
+        per_page=per_page,
+        total_pages=total_pages,
+        exibindo_inicio=exibindo_inicio,
+        exibindo_fim=exibindo_fim,
     )
 
 
@@ -175,6 +197,7 @@ def cadastro_rapido():
                     "cliente": {
                         "id": cliente.id,
                         "codigo": cliente.codigo,
+                        "tipo_pessoa": cliente.tipo_pessoa,
                         "razao_social": cliente.razao_social,
                         "cpf_cnpj": cliente.cpf_cnpj,
                         "telefone": cliente.telefone,

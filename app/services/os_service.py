@@ -155,20 +155,21 @@ class OsService:
             if material is None:
                 raise ValueError(f"Material ID {mat_id_raw} não encontrado no estoque.")
 
-            if qtd > float(material.disponivel or 0.0):
+            if status != "Cancelada" and qtd > float(material.disponivel or 0.0):
                 raise ValueError("Saldo insuficiente no estoque")
 
             materiais_validados.append((material, qtd))
 
-        # Baixa automática no estoque (RN02 + RF04) e criação dos itens da O.S.
+        # Baixa automática no estoque (RN02 + RF04) quando a O.S. não nasce Cancelada
         itens_os: List[ItemOrdemServico] = []
         for material, qtd in materiais_validados:
-            self.estoque_service.registrar_saida(
-                material,
-                quantidade=qtd,
-                responsavel=responsavel,
-                descricao_movimentacao=f"Saída para {numero_os}",
-            )
+            if status != "Cancelada":
+                self.estoque_service.registrar_saida(
+                    material,
+                    quantidade=qtd,
+                    responsavel=responsavel,
+                    descricao_movimentacao=f"Saída para {numero_os}",
+                )
             itens_os.append(
                 ItemOrdemServico(
                     material_id=material.id,
@@ -284,6 +285,50 @@ class OsService:
         ordem.itens = novos_itens
         self.calculadora_service.calcular_totais_os(ordem)
 
+    def _estornar_itens_os(self, ordem: OrdemServico, motivo: str) -> None:
+        """Devolve integralmente ao estoque todos os materiais vinculados à O.S."""
+        responsavel = ordem.responsavel or "Carlos Mendes"
+        for item in ordem.itens or []:
+            qtd = float(item.quantidade or 0.0)
+            if qtd <= 0:
+                continue
+            material = self.estoque_service.buscar_por_id(int(item.material_id))
+            if material is not None:
+                self.estoque_service.registrar_entrada(
+                    material,
+                    quantidade=qtd,
+                    responsavel=responsavel,
+                    descricao_movimentacao=motivo,
+                )
+
+    def _atualizar_itens_sem_estoque(
+        self,
+        ordem: OrdemServico,
+        lista_materiais: List[Mapping[str, Any]],
+    ) -> None:
+        """Atualiza a relação de itens de uma O.S. cancelada sem movimentar o saldo físico."""
+        novos_itens: List[ItemOrdemServico] = []
+        for item_req in lista_materiais:
+            mat_id_raw = item_req.get("material_id")
+            qtd_raw = item_req.get("quantidade")
+            if mat_id_raw is None or str(mat_id_raw).strip() == "":
+                continue
+            qtd = _parse_valor_monetario(qtd_raw, "Quantidade do material")
+            if qtd <= 0:
+                continue
+            material = self.estoque_service.buscar_por_id(int(mat_id_raw))
+            if material is None:
+                raise ValueError(f"Material ID {mat_id_raw} não encontrado no estoque.")
+            novos_itens.append(
+                ItemOrdemServico(
+                    material_id=material.id,
+                    quantidade=qtd,
+                    valor_unitario=float(material.custo_unitario or 0.0),
+                )
+            )
+        ordem.itens = novos_itens
+        self.calculadora_service.calcular_totais_os(ordem)
+
     def atualizar_status_ou_dados(
         self,
         os_id: int,
@@ -294,14 +339,18 @@ class OsService:
         if ordem is None:
             raise ValueError("Ordem de Serviço não encontrada.")
 
+        status_anterior = (ordem.status or "Aberta").strip()
+
         if "cliente_id" in dados and str(dados.get("cliente_id", "")).strip() != "":
             cliente = self.cliente_repository.buscar_por_id(int(dados["cliente_id"]))
             if cliente is None:
                 raise ValueError("Cliente obrigatório não selecionado")
             ordem.cliente_id = cliente.id
 
+        novo_status = status_anterior
         if "status" in dados and (dados.get("status") or "").strip():
-            ordem.status = dados["status"].strip()
+            novo_status = dados["status"].strip()
+
         if "data_abertura" in dados and (dados.get("data_abertura") or "").strip():
             ordem.data_abertura = dados["data_abertura"].strip()
         if "prazo_entrega" in dados:
@@ -331,11 +380,55 @@ class OsService:
         if lista_materiais is None and "itens" in dados:
             lista_materiais = dados.get("itens")
 
-        if lista_materiais is not None:
-            self._sincronizar_itens_estoque(ordem, list(lista_materiais))
+        # Sincronização inteligente de estoque considerando transições para/de "Cancelada"
+        if status_anterior != "Cancelada" and novo_status == "Cancelada":
+            self._estornar_itens_os(
+                ordem,
+                f"Estorno por cancelamento da {ordem.numero}",
+            )
+            if lista_materiais is not None:
+                self._atualizar_itens_sem_estoque(ordem, list(lista_materiais))
+        elif status_anterior == "Cancelada" and novo_status == "Cancelada":
+            if lista_materiais is not None:
+                self._atualizar_itens_sem_estoque(ordem, list(lista_materiais))
+        elif status_anterior == "Cancelada" and novo_status != "Cancelada":
+            itens_reativacao = (
+                list(lista_materiais)
+                if lista_materiais is not None
+                else [
+                    {"material_id": it.material_id, "quantidade": it.quantidade}
+                    for it in (ordem.itens or [])
+                ]
+            )
+            ordem.itens = []
+            self._sincronizar_itens_estoque(ordem, itens_reativacao)
+        else:
+            if lista_materiais is not None:
+                self._sincronizar_itens_estoque(ordem, list(lista_materiais))
 
+        ordem.status = novo_status
         self.calculadora_service.calcular_totais_os(ordem)
         return self.os_repository.salvar(ordem)
+
+    def cancelar_ordem_servico(self, os_id: int) -> OrdemServico:
+        """Cancela a O.S. devolvendo automaticamente os materiais vinculados ao estoque."""
+        return self.atualizar_status_ou_dados(os_id, {"status": "Cancelada"})
+
+    def excluir_ordem_servico(self, os_id: int) -> str:
+        """Exclui a O.S. devolvendo ao estoque eventuais materiais ainda retidos."""
+        ordem = self.os_repository.buscar_por_id(os_id)
+        if ordem is None:
+            raise ValueError("Ordem de Serviço não encontrada.")
+
+        numero_os = ordem.numero
+        if (ordem.status or "").strip() != "Cancelada":
+            self._estornar_itens_os(
+                ordem,
+                f"Estorno por exclusão da {numero_os}",
+            )
+
+        self.os_repository.excluir(ordem)
+        return numero_os
 
     atualizar_ordem_servico = atualizar_status_ou_dados
 

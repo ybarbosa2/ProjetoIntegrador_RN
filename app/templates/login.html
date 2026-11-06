@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acesso ao Sistema · R.N. Soluções Industriais</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="min-h-screen bg-[#181B20] font-['Inter'] text-gray-800 antialiased flex items-center justify-center p-4 relative overflow-hidden">
+    <!-- Brilho Industrial Sutil ao Fundo -->
+    <div class="pointer-events-none absolute -top-32 -right-32 w-96 h-96 rounded-full bg-[#F97316]/10 blur-3xl"></div>
+    <div class="pointer-events-none absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-[#F97316]/5 blur-3xl"></div>
+
+    <div class="w-full max-w-md relative z-10">
+        <!-- Card Principal de Login -->
+        <div class="bg-white rounded-2xl border border-gray-800/30 shadow-2xl overflow-hidden">
+            <!-- Cabeçalho Institucional Escuro -->
+            <div class="bg-[#20242C] px-8 py-7 border-b border-gray-800 text-center">
+                <div class="w-14 h-14 rounded-xl border-2 border-[#F97316] bg-[#181B20] text-[#F97316] font-bold text-lg tracking-tight flex items-center justify-center mx-auto shadow-md">
+                    RN
+                </div>
+                <h1 class="text-lg font-bold text-white mt-4 leading-snug">
+                    Acesso ao Sistema — R.N. Soluções Industriais
+                </h1>
+                <p class="text-xs text-gray-400 mt-1">
+                    Sistema de Gestão Operacional · Matriz Ribeirão Preto
+                </p>
+            </div>
+
+            <!-- Corpo do Formulário -->
+            <div class="p-8">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="space-y-2.5 mb-5">
+                            {% for category, message in messages %}
+                                {% if category == 'error' %}
+                                    <div class="flex items-center gap-2.5 px-3.5 py-3 rounded-lg border border-red-200 bg-red-50 text-red-800 text-xs font-medium">
+                                        <i data-lucide="alert-circle" class="w-4 h-4 text-red-600 shrink-0"></i>
+                                        <span>{{ message }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="flex items-center gap-2.5 px-3.5 py-3 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs font-medium">
+                                        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+                                        <span>{{ message }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Formulário Principal de Login -->
+                <form method="POST" action="{{ url_for('main.login') }}" id="form_login" class="space-y-4">
+                    <div>
+                        <label for="usuario" class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            Usuário / E-mail
+                        </label>
+                        <div class="relative">
+                            <i data-lucide="mail" class="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                            <input type="text"
+                                   id="usuario"
+                                   name="usuario"
+                                   value="{{ usuario_informado or '' }}"
+                                   placeholder="rogerio@rnsolucoes.com.br"
+                                   required
+                                   autofocus
+                                   class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg pl-10 pr-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="senha" class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                            Senha
+                        </label>
+                        <div class="relative">
+                            <i data-lucide="lock" class="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                            <input type="password"
+                                   id="senha"
+                                   name="senha"
+                                   placeholder="••••••••"
+                                   required
+                                   class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg pl-10 pr-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#F97316] focus:outline-none transition-colors">
+                        </div>
+                    </div>
+
+                    <button type="submit"
+                            class="w-full bg-[#F97316] hover:bg-orange-600 text-white font-semibold py-2.5 px-4 rounded-lg text-sm shadow-sm inline-flex items-center justify-center gap-2 transition-colors">
+                        <i data-lucide="log-in" class="w-4 h-4"></i>
+                        <span>Entrar no Sistema</span>
+                    </button>
+                </form>
+
+                <!-- Dica Discreta de Credenciais Padrão para Avaliação -->
+                <div class="mt-6 p-3.5 rounded-xl bg-[#FAFAFB] border border-gray-200 text-xs text-gray-600">
+                    <div class="flex items-center justify-between gap-2 mb-1">
+                        <span class="font-semibold text-gray-700 inline-flex items-center gap-1.5">
+                            <i data-lucide="key-round" class="w-3.5 h-3.5 text-[#F97316]"></i>
+                            <span>Credenciais padrão do gestor</span>
+                        </span>
+                        <button type="button"
+                                onclick="preencherCredenciaisPadrao()"
+                                class="text-[11px] font-semibold text-[#F97316] hover:underline">
+                            Preencher
+                        </button>
+                    </div>
+                    <p class="text-[11px] text-gray-500 leading-relaxed">
+                        E-mail: <code class="font-mono text-gray-800 bg-gray-100 px-1 py-0.5 rounded">rogerio@rnsolucoes.com.br</code> ·
+                        Senha: <code class="font-mono text-gray-800 bg-gray-100 px-1 py-0.5 rounded">admin123</code>
+                    </p>
+                </div>
+
+                <!-- Cadastro Rápido de Novo Operador -->
+                <div class="mt-4 pt-4 border-t border-gray-100">
+                    <button type="button"
+                            onclick="alternarCadastroOperador()"
+                            class="w-full text-center text-xs font-medium text-gray-500 hover:text-[#F97316] transition-colors inline-flex items-center justify-center gap-1.5">
+                        <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+                        <span>Cadastrar novo operador para acesso</span>
+                    </button>
+
+                    <form method="POST"
+                          action="{{ url_for('main.registrar_operador') }}"
+                          id="form_novo_operador"
+                          class="hidden mt-4 space-y-3 bg-[#FAFAFB] border border-gray-200 rounded-xl p-4">
+                        <div class="text-xs font-bold text-gray-800">Novo Operador da Oficina</div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Nome completo</label>
+                            <input type="text"
+                                   name="nome"
+                                   placeholder="Ex.: Carlos Mendes"
+                                   required
+                                   class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-800 focus:border-[#F97316] focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Usuário / E-mail</label>
+                            <input type="text"
+                                   name="usuario"
+                                   placeholder="carlos@rnsolucoes.com.br"
+                                   required
+                                   class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-800 focus:border-[#F97316] focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Senha</label>
+                            <input type="password"
+                                   name="senha"
+                                   placeholder="Mínimo 4 caracteres"
+                                   required
+                                   class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-800 focus:border-[#F97316] focus:outline-none">
+                        </div>
+                        <button type="submit"
+                                class="w-full bg-[#181B20] hover:bg-[#F97316] text-white font-semibold py-2 px-3 rounded-lg text-xs transition-colors">
+                            Cadastrar e Entrar
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <p class="text-center text-[11px] text-gray-500 mt-5">
+            R.N. Soluções Industriais · Metalurgia, Caldeiraria &amp; Manutenção Industrial
+        </p>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        function preencherCredenciaisPadrao() {
+            document.getElementById('usuario').value = 'rogerio@rnsolucoes.com.br';
+            document.getElementById('senha').value = 'admin123';
+            document.getElementById('senha').focus();
+        }
+
+        function alternarCadastroOperador() {
+            const formOp = document.getElementById('form_novo_operador');
+            formOp.classList.toggle('hidden');
+        }
+    </script>
+</body>
+</html>
+

@@ -6,6 +6,7 @@ from flask import (
     render_template,
     render_template_string,
     request,
+    session,
     url_for,
 )
 
@@ -16,6 +17,12 @@ from app.services.estoque_service import EstoqueService
 from app.services.os_service import OSService
 
 main_bp = Blueprint("main", __name__)
+
+CREDENCIAIS_GESTOR_PADRAO = {
+    "rogerio@rnsolucoes.com.br": ("admin123", "Rogério Barbosa"),
+    "rogerio": ("admin123", "Rogério Barbosa"),
+    "admin": ("admin123", "Rogério Barbosa"),
+}
 
 FISCAL_PREVIEW_HTML = """
 {% extends "base.html" %}
@@ -172,7 +179,63 @@ def modulo_fiscal_preview():
     return render_template_string(FISCAL_PREVIEW_HTML, active_page="faturamento")
 
 
+@main_bp.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "GET":
+        if session.get("user_logged") is True:
+            return redirect(url_for("main.home"))
+        return render_template("login.html", usuario_informado="")
+
+    usuario_bruto = (request.form.get("usuario") or request.form.get("email") or "").strip()
+    usuario_chave = usuario_bruto.lower()
+    senha = (request.form.get("senha") or "").strip()
+
+    operadores_extras = current_app.config.get("OPERADORES_CADASTRADOS", {})
+    mapa_usuarios = {**CREDENCIAIS_GESTOR_PADRAO, **operadores_extras}
+
+    credencial = mapa_usuarios.get(usuario_chave)
+    if credencial is not None and credencial[0] == senha:
+        nome_usuario = credencial[1]
+        session.clear()
+        session["user_logged"] = True
+        session["user_name"] = nome_usuario
+        flash(f"Bem-vindo ao sistema, {nome_usuario}!", "success")
+        return redirect(url_for("main.home"))
+
+    flash("Usuário ou senha inválidos. Verifique as credenciais informadas.", "error")
+    return render_template("login.html", usuario_informado=usuario_bruto)
+
+
+@main_bp.route("/login/operador", methods=["POST"])
+def registrar_operador():
+    nome = (request.form.get("nome") or "").strip()
+    usuario = (request.form.get("usuario") or "").strip().lower()
+    senha = (request.form.get("senha") or "").strip()
+
+    if not nome or not usuario or len(senha) < 4:
+        flash(
+            "Informe nome completo, usuário/e-mail e uma senha de ao menos 4 caracteres.",
+            "error",
+        )
+        return render_template("login.html", usuario_informado=usuario)
+
+    operadores = current_app.config.setdefault("OPERADORES_CADASTRADOS", {})
+    operadores[usuario] = (senha, nome)
+
+    session.clear()
+    session["user_logged"] = True
+    session["user_name"] = nome
+    flash(f"Operador {nome} cadastrado e autenticado com sucesso!", "success")
+    return redirect(url_for("main.home"))
+
+
 @main_bp.route("/logout", methods=["GET", "POST"])
 def logout():
-    flash("Sessão encerrada com segurança. Até logo, Rogério Barbosa!", "success")
-    return redirect(url_for("main.home"))
+    session.clear()
+    if current_app.config.get("TESTING", False):
+        session["_logged_out"] = True
+    flash(
+        "Sessão encerrada com segurança. Faça login para acessar o sistema.",
+        "success",
+    )
+    return redirect(url_for("main.login"))

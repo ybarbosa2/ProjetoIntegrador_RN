@@ -534,9 +534,32 @@
                  class="hidden px-3.5 py-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium">
             </div>
 
+            <!-- Seletor Tipo de Pessoa -->
             <div>
-                <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                    RAZÃO SOCIAL / NOME COMPLETO *
+                <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                    TIPO DE PESSOA *
+                </label>
+                <input type="hidden" id="rapido_tipo_pessoa" value="Pessoa jurídica">
+                <div class="inline-flex items-center gap-2.5">
+                    <button type="button"
+                            id="btn_rapido_pj"
+                            onclick="selecionarTipoPessoaRapido('Pessoa jurídica')"
+                            class="px-4 py-2 rounded-lg text-xs transition-all border-2 border-[#F97316] bg-orange-50/40 text-[#F97316] font-semibold">
+                        Pessoa jurídica
+                    </button>
+                    <button type="button"
+                            id="btn_rapido_pf"
+                            onclick="selecionarTipoPessoaRapido('Pessoa física')"
+                            class="px-4 py-2 rounded-lg text-xs transition-all border border-gray-200 text-gray-600 hover:bg-gray-50">
+                        Pessoa física
+                    </button>
+                </div>
+            </div>
+
+            <div>
+                <label id="label_rapido_razao"
+                       class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                    RAZÃO SOCIAL *
                 </label>
                 <input type="text"
                        id="rapido_razao_social"
@@ -545,11 +568,14 @@
             </div>
 
             <div>
-                <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                    CPF / CNPJ *
+                <label id="label_rapido_cpf_cnpj"
+                       class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                    CNPJ (14 dígitos) *
                 </label>
                 <input type="text"
                        id="rapido_cpf_cnpj"
+                       maxlength="18"
+                       oninput="aplicarMascaraDocumentoRapido()"
                        placeholder="00.000.000/0000-00"
                        class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-[#F97316] focus:outline-none">
             </div>
@@ -561,6 +587,8 @@
                     </label>
                     <input type="text"
                            id="rapido_telefone"
+                           maxlength="15"
+                           oninput="aplicarMascaraTelefoneRapido(this)"
                            placeholder="(16) 99999-0000"
                            class="w-full bg-[#F8F9FA] focus:bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-[#F97316] focus:outline-none">
                 </div>
@@ -672,6 +700,81 @@
         recalcularOrcamentoTela();
     }
 
+    function formatarCpfRapido(valor) {
+        const d = valor.replace(/\D/g, '').slice(0, 11);
+        if (d.length <= 3) return d;
+        if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+        if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+        return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+    }
+
+    function formatarCnpjRapido(valor) {
+        const d = valor.replace(/\D/g, '').slice(0, 14);
+        if (d.length <= 2) return d;
+        if (d.length <= 5) return `${d.slice(0, 2)}.${d.slice(2)}`;
+        if (d.length <= 8) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`;
+        if (d.length <= 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`;
+        return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
+    }
+
+    function aplicarMascaraDocumentoRapido() {
+        const tipo = document.getElementById('rapido_tipo_pessoa').value;
+        const input = document.getElementById('rapido_cpf_cnpj');
+        input.value = tipo === 'Pessoa física'
+            ? formatarCpfRapido(input.value)
+            : formatarCnpjRapido(input.value);
+    }
+
+    function aplicarMascaraTelefoneRapido(input) {
+        const d = input.value.replace(/\D/g, '').slice(0, 11);
+        if (d.length === 0) {
+            input.value = '';
+        } else if (d.length <= 2) {
+            input.value = `(${d}`;
+        } else if (d.length <= 6) {
+            input.value = `(${d.slice(0, 2)}) ${d.slice(2)}`;
+        } else if (d.length <= 10) {
+            input.value = `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+        } else {
+            input.value = `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+        }
+    }
+
+    function selecionarTipoPessoaRapido(tipo) {
+        document.getElementById('rapido_tipo_pessoa').value = tipo;
+        const btnPj = document.getElementById('btn_rapido_pj');
+        const btnPf = document.getElementById('btn_rapido_pf');
+        const labelRazao = document.getElementById('label_rapido_razao');
+        const inputRazao = document.getElementById('rapido_razao_social');
+        const labelDoc = document.getElementById('label_rapido_cpf_cnpj');
+        const inputDoc = document.getElementById('rapido_cpf_cnpj');
+
+        const ativa = 'px-4 py-2 rounded-lg text-xs transition-all border-2 border-[#F97316] bg-orange-50/40 text-[#F97316] font-semibold';
+        const inativa = 'px-4 py-2 rounded-lg text-xs transition-all border border-gray-200 text-gray-600 hover:bg-gray-50';
+
+        if (tipo === 'Pessoa física') {
+            btnPf.className = ativa;
+            btnPj.className = inativa;
+            labelRazao.textContent = 'NOME COMPLETO *';
+            inputRazao.placeholder = 'Ex.: Marcos Antônio Ribeiro';
+            labelDoc.textContent = 'CPF (11 dígitos) *';
+            inputDoc.placeholder = '000.000.000-00';
+            inputDoc.maxLength = 14;
+        } else {
+            btnPj.className = ativa;
+            btnPf.className = inativa;
+            labelRazao.textContent = 'RAZÃO SOCIAL *';
+            inputRazao.placeholder = 'Ex.: Metalúrgica Ribeirão Ltda.';
+            labelDoc.textContent = 'CNPJ (14 dígitos) *';
+            inputDoc.placeholder = '00.000.000/0000-00';
+            inputDoc.maxLength = 18;
+        }
+
+        if (inputDoc.value) {
+            aplicarMascaraDocumentoRapido();
+        }
+    }
+
     function abrirModalCadastroRapido() {
         const modal = document.getElementById('modal_cadastro_rapido');
         document.getElementById('erro_cadastro_rapido').classList.add('hidden');
@@ -692,6 +795,7 @@
         erroBox.classList.add('hidden');
 
         const payload = {
+            tipo_pessoa: document.getElementById('rapido_tipo_pessoa').value,
             razao_social: document.getElementById('rapido_razao_social').value.trim(),
             cpf_cnpj: document.getElementById('rapido_cpf_cnpj').value.trim(),
             telefone: document.getElementById('rapido_telefone').value.trim(),
@@ -728,6 +832,7 @@
             document.getElementById('rapido_cpf_cnpj').value = '';
             document.getElementById('rapido_telefone').value = '';
             document.getElementById('rapido_email').value = '';
+            selecionarTipoPessoaRapido('Pessoa jurídica');
             fecharModalCadastroRapido();
         } catch (e) {
             erroBox.textContent = 'Erro de comunicação ao salvar cliente.';
